@@ -7,8 +7,9 @@ MissForestExtra aims to provide the most convenient way for the data science com
 - **Email:** hindy888@hotmail.com
 - **Source code:** https://github.com/HindyDS/MissForestExtra/tree/main/MissForestExtra 
 - **Bug reports:** https://github.com/HindyDS/MissForestExtra/issues
-
-It requires at least three arguments to run:
+- 
+# Convenient
+It only requires 3 arguments to run:
 
 - df: dataset that being imputed
 - impute (str): feature that being imputed
@@ -19,3 +20,17 @@ Optional arguments:
 - verbose (int): Level of verbosity of MFE
 
 If you have any ideas for this packge please don't hesitate to bring forward!
+
+# Flexible
+You can implement other machine learning models besides RandomForest into MissForestExtra
+
+# Quick Start
+    !pip install MissForestExtra
+    
+    from MissForestExtra import MissForestExtra
+
+    mfe = MissForestExtra()
+
+    mfe.impute(df, impute, model)
+
+    # return the imputed pandas series
