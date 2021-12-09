@@ -12,28 +12,28 @@ class MissForestExtra:
         self.__license__= 'MIT License'
         self.__contact__ = 'https://github.com/HindyDS/MissForest'
     
-    def impute(self, df, impute, model, max_iter=5, verbose=0):
-        df3 = df.copy()
+    def single_impute(self, x, impute, model, max_iter=5, verbose=0):
+        x3 = x.copy()
         pd.options.mode.chained_assignment = None  # default='warn'
                   
-        encode_col = [f for f in df.columns if isinstance(df[f].sample(1).values[0], str)]
+        encode_col = [f for f in x.columns if isinstance(x[f].sample(1).values[0], str)]
         for c in encode_col:  
-            df3[c].replace(df[c].dropna().unique(), range(df[c].dropna().nunique()), inplace=True) # label encoding
+            x3[c].replace(x[c].dropna().unique(), range(x[c].dropna().nunique()), inplace=True) # label encoding
             if c == impute:
-                impute_map = ({k:v for (k,v) in zip(df[c].dropna().unique(), range(df[c].dropna().nunique()))})
+                impute_map = ({k:v for (k,v) in zip(x[c].dropna().unique(), range(x[c].dropna().nunique()))})
                 impute_map = {v:k for (k,v) in impute_map.items()}
        
-        non_null = list(set([feat for feat, val in zip(df.isnull().sum().index, df.isnull().sum()) if val == 0] + [impute]))
+        non_null = list(set([feat for feat, val in zip(x.isnull().sum().index, x.isnull().sum()) if val == 0] + [impute]))
             
         track = {}
         for n_iter in range(max_iter):
-            df2=df3[non_null].copy()
-            df2['Training/Predict'] = np.where(df2[impute].isnull(), 'predict', 'training')
-            predict_set = df2[df2['Training/Predict'] == 'predict']
-            training_set = df2[df2['Training/Predict'] == 'training']
+            x2=x3[non_null].copy()
+            x2['Training/Predict'] = np.where(x2[impute].isnull(), 'predict', 'training')
+            predict_set = x2[x2['Training/Predict'] == 'predict']
+            training_set = x2[x2['Training/Predict'] == 'training']
 
             if n_iter == 1:
-                predict_set[impute].fillna(df2[impute].median(), inplace=True) if impute in encode_col else predict_set[impute].fillna(df2[impute].mode().values[0], inplace=True)
+                predict_set[impute].fillna(x2[impute].median(), inplace=True) if impute in encode_col else predict_set[impute].fillna(x2[impute].mode().values[0], inplace=True)
                    
             if n_iter > 1:
                 for idx, pred in zip(predict_set.index, res):
@@ -63,3 +63,25 @@ class MissForestExtra:
        
         imputed_feature = pd.concat([training_set[impute], predict_set[impute]], axis=0).sort_index()
         return imputed_feature.replace(impute_map) if impute in encode_col else imputed_feature
+
+    def impute(self, x, classifier, regressor, max_iter=5, verbose=0):
+      x = x.copy()
+      x2 = x.copy()
+      columns_that_require_imputation_in_ascending_order = x.isnull().sum()[x.isnull().sum() != 0].sort_values().index
+
+      is_string = {}
+      for col in columns_that_require_imputation_in_ascending_order:
+        is_string[col] = isinstance(x[~x[col].isnull()].loc[:, col].sample(1).values[0], str)
+        
+      for col in columns_that_require_imputation_in_ascending_order:
+        if is_string[col]:
+          imputed = self.single_impute(x, col, classifier, max_iter, verbose)
+
+        else:
+          imputed = self.single_impute(x, col, regressor, max_iter, verbose) 
+
+        insert_index = list(x.columns).index(col)
+        x2.drop(col, axis=1, inplace=True)
+        x2.insert(insert_index, col, imputed)  
+
+      return x2
