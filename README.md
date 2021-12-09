@@ -11,9 +11,16 @@ MissForestExtra aims to provide the most convenient way for the data science com
 # Convenient
 It only requires 3 arguments to run:
 
+For single_impute:
 - df: dataset that being imputed
 - impute (str): feature that being imputed
 - model: machine learning model
+
+
+For impute:
+- df: dataset that being imputed
+- classifier: sklearn classifier
+- regressor: sklearn regressor
 
 Optional arguments:
 - max_iter (int): maximum number of iterations
