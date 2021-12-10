@@ -10,7 +10,6 @@ class MissForest:
     def __init__(self):     
         self.__author__ = 'Yuen Shing Yan Hindy'
         self.__license__= 'MIT License'
-        self.__contact__ = 'https://github.com/HindyDS/MissForest'
     
     def single_impute(self, x, feature_to_be_imputed, estimator, max_iter=5):
         # Disable pandas warning
