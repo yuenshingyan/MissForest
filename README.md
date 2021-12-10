@@ -24,11 +24,11 @@ If you have any ideas for this packge please don't hesitate to bring forward!
 You can implement other machine learning models besides RandomForest into MissForest
 
 # Quick Start
-    !pip install MissForestExtra
+    !pip install MissFores
     
-    from MissForestExtra import MissForestExtra
+    from MissForest import MissForest
 
-    mfe = MissForestExtra()
+    mfe = MissForest()
 
     mfe.single_impute(x, feature_to_be_imputed, estimator)
 
