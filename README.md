@@ -28,12 +28,12 @@ You can implement other machine learning models besides RandomForest into MissFo
     
     from MissForest import MissForest
 
-    mfe = MissForest()
+    mf = MissForest()
 
-    mfe.single_impute(x, feature_to_be_imputed, estimator)
+    mf.single_impute(x, feature_to_be_imputed, estimator)
 
     # return the imputed pandas series
 
-    mfe.impute(x, classifier, regressor)
+    mf.impute(x, classifier, regressor)
 
      # return imputed dataframe
