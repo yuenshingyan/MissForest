@@ -24,7 +24,7 @@ If you have any ideas for this packge please don't hesitate to bring forward!
 You can implement other machine learning models besides RandomForest into MissForest
 
 # Quick Start
-    !pip install MissFores
+    !pip install MissForest
     
     from MissForest import MissForest
 
