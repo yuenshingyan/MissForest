@@ -16,7 +16,7 @@ It only requires 3 arguments to run:
 - estimator: machine learning model
 
 Optional arguments:
-- max_iter (int): maximum number of iterations
+- n_iter (int): maximum number of iterations
 
 If you have any ideas for this packge please don't hesitate to bring forward!
 
