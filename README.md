@@ -1,4 +1,4 @@
-# missForest
+# MissForest
 This project is a Python implementation of the MissForest algorithm, a powerful tool designed to handle missing values in tabular datasets. The primary goal of this project is to provide users with a more accurate method of imputing missing data.
 
 The project consists of a single function, fit_transform, which is responsible for imputing all missing values in a given dataset. While MissForest may take more time to process datasets compared to simpler imputation methods, it typically yields more accurate results.
