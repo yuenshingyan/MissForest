@@ -5,6 +5,9 @@ The project consists of a single function, fit_transform, which is responsible f
 
 Please note that the efficiency of MissForest is a trade-off for its accuracy. It is designed for those who prioritize data accuracy over processing speed. This makes it an excellent choice for projects where the quality of data is paramount.
 
+# How MissForest Handles Categorical Variables ?
+If the datatype of all values in a feature (besides missing values) are string, it will be inferred as categorical variable and will be label encoded for estimators to work properly. 
+
 # Example
 To install MissForest using pip.
 
