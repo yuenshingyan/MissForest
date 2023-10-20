@@ -15,7 +15,7 @@ To install MissForest using pip.
 
 Imputing a dataset:
 
-    from missforest.miss_forest import MissForest
+    from missforest.missforest import MissForest
     import pandas as pd
     import numpy as np
     
@@ -29,7 +29,7 @@ Imputing a dataset:
 
 # Imputing with other estimators
 
-    from missforest.miss_forest import MissForest
+    from missforest.missforest import MissForest
     import pandas as pd
     import numpy as np
     from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
