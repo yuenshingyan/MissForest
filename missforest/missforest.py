@@ -47,8 +47,9 @@ class MissForest:
         self.regressor = rgr
         self.initial_guess = initial_guess
         self.max_iter = max_iter
-
-    def _is_estimator_or_none(self, estimator):
+    
+    @staticmethod
+    def _is_estimator_or_none(estimator):
         """
         Class method '_is_estimator_or_none' is used to check if argument
         'estimator' is an object that implement the scikit-learn estimator api.
@@ -67,7 +68,7 @@ class MissForest:
         """
 
         is_none = estimator is None
-        is_estmr = False
+        is_estimator = False
         if estimator is not None:
             # get the class methods 'fit' and 'predict' of the estimator.
             is_has_fit_method = getattr(estimator, "fit")
@@ -78,14 +79,15 @@ class MissForest:
             is_has_predict_method = callable(is_has_predict_method)
 
             # assumes it is an estimator if it has 'fit' and 'predict' methods.
-            is_estmr = is_has_fit_method and is_has_predict_method
+            is_estimator = is_has_fit_method and is_has_predict_method
 
-        if is_none or is_estmr:
+        if is_none or is_estimator:
             return True
 
         return False
-
-    def _get_missing_rows(self, X):
+    
+    @staticmethod
+    def _get_missing_rows(X):
         """
         Class method '_get_missing_rows' gather the index of any rows that has
         missing values.
@@ -110,8 +112,9 @@ class MissForest:
             miss_row[c] = missing_index
 
         return miss_row
-
-    def _get_missing_cols(self, X):
+    
+    @staticmethod
+    def _get_missing_cols(X):
         """
         Class method '_get_missing_cols' gather the columns of any rows that
         has missing values.
@@ -130,8 +133,9 @@ class MissForest:
         is_missing = X.isnull().sum(axis=0).sort_values() > 0
         missing_cols = X.columns[is_missing]
         return missing_cols
-
-    def _get_obs_row(self, X):
+    
+    @staticmethod
+    def _get_obs_row(X):
         """
         Class method '_get_obs_row' gather the rows of any rows that do not
         have any missing values.
@@ -150,10 +154,11 @@ class MissForest:
         n_null = X.isnull().sum(axis=1)
         obs_row = X[n_null == 0].index
         return obs_row
-
-    def _get_map_and_revmap(self, X):
+    
+    @staticmethod
+    def _get_map_and_rev_map(X):
         """
-        Class method '_get_map_and_revmap' gets the encodings and the reverse
+        Class method '_get_map_and_rev_map' gets the encodings and the reverse
         encodings of categorical variables.
 
         Parameters
@@ -174,24 +179,25 @@ class MissForest:
 
         # using a vectorized version of 'type' function to speed up
         # computations.
-        vtype = np.vectorize(type)
+        vectorized_type = np.vectorize(type)
 
         mappings = {}
         rev_mappings = {}
         for c in X.columns:
             feature_without_na = X[c].dropna()
-            feature_without_na_type = vtype(feature_without_na)
+            feature_without_na_type = vectorized_type(feature_without_na)
             is_all_str = all(feature_without_na_type == str)
             if is_all_str:
-                unique_vals = X[c].dropna().unique()
-                nunique_vals = range(X[c].dropna().nunique())
+                unique_values = X[c].dropna().unique()
+                nunique_values = range(X[c].dropna().nunique())
 
-                mappings[c] = {k: v for k, v in zip(unique_vals, nunique_vals)}
-                rev_mappings[c] = {v: k for k, v in mappings[c].items()}
+                mappings[c] = dict(zip(unique_values, nunique_values))
+                rev_mappings[c] = dict(zip(nunique_values, unique_values))
 
         return mappings, rev_mappings
-
-    def _check_if_all_single_type(self, X):
+    
+    @staticmethod
+    def _check_if_all_single_type(X):
         """
         Class method '_check_if_all_single_type' checks if all values in the
         feature belongs to the same datatype.
@@ -202,15 +208,15 @@ class MissForest:
         Dataset (features only) that needed to be imputed.
         """
 
-        vtype = np.vectorize(type)
+        vectorized_type = np.vectorize(type)
         for c in X.columns:
             feature_no_na = X[c].dropna()
-            all_type = vtype(feature_no_na)
+            all_type = vectorized_type(feature_no_na)
             all_unique_type = pd.unique(all_type)
             n_type = len(all_unique_type)
             if n_type > 1:
                 raise ValueError(f"Feature {c} has more than 2 dtypes.")
-
+    
     def _initial_imputation(self, X):
         """
         Class method '_initial_imputation' imputes the values of features using
@@ -231,17 +237,18 @@ class MissForest:
         for c in X.columns:
             try:
                 if self.initial_guess == 'mean':
-                    impute_vals = X[c].mean()
+                    impute_values = X[c].mean()
                 else:
-                    impute_vals = X[c].median()
+                    impute_values = X[c].median()
             except TypeError:
-                impute_vals = X[c].mode().values[0]
+                impute_values = X[c].mode().values[0]
 
-            X[c].fillna(impute_vals, inplace=True)
+            X[c].fillna(impute_values, inplace=True)
 
         return X
-
-    def _label_encoding(self, X, mappings):
+    
+    @staticmethod
+    def _label_encoding(X, mappings):
         """
         Class method '_label_encoding' performs label encoding on given
         features and the input mappings.
@@ -266,8 +273,9 @@ class MissForest:
             X[c] = X[c].astype(int)
 
         return X
-
-    def _rev_label_encoding(self, X, rev_mappings):
+    
+    @staticmethod
+    def _rev_label_encoding(X, rev_mappings):
         """
         Class method '_rev_label_encoding' performs reverse label encoding on
         given features and the input reverse mappings.
@@ -309,11 +317,11 @@ class MissForest:
         miss_row = self._get_missing_rows(X)
         miss_col = self._get_missing_cols(X)
         obs_row = self._get_obs_row(X)
-        mappings, rev_mappings = self._get_map_and_revmap(X)
+        mappings, rev_mappings = self._get_map_and_rev_map(X)
         X_imp = self._initial_imputation(X)
         X_imp = self._label_encoding(X_imp, mappings)
 
-        for n in range(self.max_iter):
+        for _ in range(self.max_iter):
             for c in miss_col:
                 if c in mappings:
                     estimator = deepcopy(self.classifier)
