@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from lightgbm import LGBMRegressor
-from missforest.errors import InputInvalidError
+from missforest.errors import InputInvalidError, MultipleDataTypesError
 
 
 class MissForest:
@@ -143,6 +143,7 @@ class MissForest:
 
         is_missing = X.isnull().sum(axis=0).sort_values() > 0
         missing_cols = X.columns[is_missing]
+
         return missing_cols
     
     @staticmethod
@@ -164,6 +165,7 @@ class MissForest:
 
         n_null = X.isnull().sum(axis=1)
         obs_row = X[n_null == 0].index
+
         return obs_row
     
     @staticmethod
@@ -246,7 +248,8 @@ class MissForest:
     def _check_if_all_single_type(X):
         """
         Class method '_check_if_all_single_type' checks if all values in the
-        feature belongs to the same datatype.
+        feature belongs to the same datatype. If not, error
+        'MultipleDataTypesError will be raised.'
 
         Parameters
         ----------
@@ -261,7 +264,8 @@ class MissForest:
             all_unique_type = pd.unique(all_type)
             n_type = len(all_unique_type)
             if n_type > 1:
-                raise ValueError(f"Feature {c} has more than 2 dtypes.")
+                raise MultipleDataTypesError(f"Feature {c} has more than one "
+                                             f"datatype.")
     
     def _initial_imputation(self, X):
         """
@@ -315,8 +319,7 @@ class MissForest:
         """
 
         for c in mappings:
-            X[c].replace(mappings[c], inplace=True)
-            X[c] = X[c].astype(int)
+            X[c] = X[c].map(mappings[c]).astype(int)
 
         return X
     
@@ -342,7 +345,7 @@ class MissForest:
         """
 
         for c in rev_mappings:
-            X[c].replace(rev_mappings[c], inplace=True)
+            X[c] = X[c].map(rev_mappings[c])
 
         return X
 
