@@ -44,6 +44,16 @@ class MissForest:
                              "estimators that has class methods 'fit' and "
                              "'predict'.")
 
+        if not isinstance(initial_guess, str):
+            raise ValueError("Argument 'initial_guess' only accept str.")
+
+        if initial_guess not in ("median", "mean"):
+            raise ValueError("Argument 'initial_guess' can only be 'median' or"
+                             " 'mean'.")
+
+        if not isinstance(max_iter, int):
+            raise ValueError("Argument 'max_iter' only accept int.")
+
         self.classifier = clf
         self.regressor = rgr
         self.initial_guess = initial_guess
