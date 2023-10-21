@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from lightgbm import LGBMRegressor
+from missforest.errors import InputInvalidError
 
 
 class MissForest:
@@ -195,7 +196,42 @@ class MissForest:
                 rev_mappings[c] = dict(zip(nunique_values, unique_values))
 
         return mappings, rev_mappings
-    
+
+    @staticmethod
+    def _check_if_valid(X):
+        """Class method '_check_if_valid' checks if input argument 'X' is
+        either a pandas dataframe, numpy array or list of lists. If 'X' is a
+        pandas dataframe, returns 'X'. If 'X' is a numpy array or list of lists
+        , 'X' will be converted into pandas dataframe and got returned. If 'X'
+         is not either pandas dataframe, numpy array or list of lists,
+         'InputInvalidError' will be raised.
+
+         Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        Dataset (features only) that needed to be imputed.
+
+        Return
+        ------
+        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        Dataset (features only) that needed to be imputed.
+
+         """
+
+        if isinstance(X, pd.DataFrame):
+            return X
+        elif (
+                isinstance(X, np.ndarray) or
+                isinstance(X, list) and all(isinstance(i, list) for i in X)
+        ):
+            X = pd.DataFrame(X)
+
+            return X
+        else:
+            raise InputInvalidError("""'InputInvalidError' is raised when the
+             input argument 'X' is not either pandas dataframe, numpy array or
+              list of lists.""")
+
     @staticmethod
     def _check_if_all_single_type(X):
         """
@@ -313,6 +349,7 @@ class MissForest:
         Imputed dataset (features only).
         """
 
+        X = self._check_if_valid(X)
         self._check_if_all_single_type(X)
         miss_row = self._get_missing_rows(X)
         miss_col = self._get_missing_cols(X)
