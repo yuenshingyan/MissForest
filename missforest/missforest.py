@@ -33,16 +33,14 @@ class MissForest:
     def __init__(self, clf=LGBMClassifier(), rgr=LGBMRegressor(),
                  initial_guess='median', max_iter=5):
         # make sure the classifier is None (no input) or an estimator.
-        if not self._is_estimator_or_none(clf):
-            raise ValueError("Argument 'clf' only accept NoneType or "
-                             "estimators that has class methods 'fit' and "
-                             "'predict'.")
+        if not self._is_estimator(clf):
+            raise ValueError("Argument 'clf' only accept estimators that has "
+                             "class methods 'fit' and 'predict'.")
 
         # make sure the regressor is None (no input) or an estimator.
-        if not self._is_estimator_or_none(rgr):
-            raise ValueError("Argument 'rgr' only accept NoneType or "
-                             "estimators that has class methods 'fit' and "
-                             "'predict'.")
+        if not self._is_estimator(rgr):
+            raise ValueError("Argument 'rgr' only accept estimators that has"
+                             " class methods 'fit' and 'predict'.")
 
         if not isinstance(initial_guess, str):
             raise ValueError("Argument 'initial_guess' only accept str.")
@@ -60,7 +58,7 @@ class MissForest:
         self.max_iter = max_iter
     
     @staticmethod
-    def _is_estimator_or_none(estimator):
+    def _is_estimator(estimator):
         """
         Class method '_is_estimator_or_none' is used to check if argument
         'estimator' is an object that implement the scikit-learn estimator api.
@@ -78,9 +76,7 @@ class MissForest:
         Otherwise, return False
         """
 
-        is_none = estimator is None
-        is_estimator = False
-        if estimator is not None:
+        try:
             # get the class methods 'fit' and 'predict' of the estimator.
             is_has_fit_method = getattr(estimator, "fit")
             is_has_predict_method = getattr(estimator, "predict")
@@ -89,13 +85,14 @@ class MissForest:
             is_has_fit_method = callable(is_has_fit_method)
             is_has_predict_method = callable(is_has_predict_method)
 
-            # assumes it is an estimator if it has 'fit' and 'predict' methods.
-            is_estimator = is_has_fit_method and is_has_predict_method
-
-        if is_none or is_estimator:
-            return True
-
-        return False
+            # assumes it is an estimator if it has 'fit' and 'predict'
+            # methods.
+            if is_has_fit_method and is_has_predict_method:
+                return True
+            else:
+                return False
+        except AttributeError:
+            return False
     
     @staticmethod
     def _get_missing_rows(X):
@@ -286,10 +283,13 @@ class MissForest:
 
         for c in X.columns:
             try:
-                if self.initial_guess == 'mean':
+                if self.initial_guess == "mean":
                     impute_values = X[c].mean()
-                else:
+                elif self.initial_guess == "median":
                     impute_values = X[c].median()
+                else:
+                    raise ValueError("Argument 'initial_guess' only accepts "
+                                     "'mean' or 'median'.")
             except TypeError:
                 impute_values = X[c].mode().values[0]
 
