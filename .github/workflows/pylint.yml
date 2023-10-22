@@ -20,4 +20,5 @@ jobs:
         pip install pylint
     - name: Analysing the code with pylint
       run: |
-        pylint --rcfile=pylint/.pylintrc './missforest/missforest.py'
+        pylint --rcfile=pylint/.pylintrc ./missforest/missforest.py || pylint-exit $?
+      shell: bash
