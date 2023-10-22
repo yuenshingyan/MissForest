@@ -1,5 +1,8 @@
 """This module contains class 'TestMissForest'."""
 
+__all__ = ["MissForest"]
+__version__ = "2.1.0"
+__author__ = "Yuen Shing Yan Hindy"
 
 import unittest
 import pandas as pd
