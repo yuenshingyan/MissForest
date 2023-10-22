@@ -379,6 +379,6 @@ class TestMissForest(unittest.TestCase):
         # Assert that the result is equal to the expected output
         pd.testing.assert_frame_equal(result, expected, check_dtype=False)
 
-    
+
 if __name__ == '__main__':
     unittest.main()

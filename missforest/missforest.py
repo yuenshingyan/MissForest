@@ -56,7 +56,7 @@ class MissForest:
         self.regressor = rgr
         self.initial_guess = initial_guess
         self.max_iter = max_iter
-    
+
     @staticmethod
     def _is_estimator(estimator):
         """
@@ -87,13 +87,10 @@ class MissForest:
 
             # assumes it is an estimator if it has 'fit' and 'predict'
             # methods.
-            if is_has_fit_method and is_has_predict_method:
-                return True
-            else:
-                return False
+            return is_has_fit_method and is_has_predict_method
         except AttributeError:
             return False
-    
+
     @staticmethod
     def _get_missing_rows(X):
         """
@@ -120,7 +117,7 @@ class MissForest:
             miss_row[c] = missing_index
 
         return miss_row
-    
+
     @staticmethod
     def _get_missing_cols(X):
         """
@@ -142,7 +139,7 @@ class MissForest:
         missing_cols = X.columns[is_missing]
 
         return missing_cols
-    
+
     @staticmethod
     def _get_obs_row(X):
         """
@@ -164,7 +161,7 @@ class MissForest:
         obs_row = X[n_null == 0].index
 
         return obs_row
-    
+
     @staticmethod
     def _get_map_and_rev_map(X):
         """
@@ -229,17 +226,18 @@ class MissForest:
 
         if isinstance(X, pd.DataFrame):
             return X
-        elif (
+
+        if (
                 isinstance(X, np.ndarray) or
                 isinstance(X, list) and all(isinstance(i, list) for i in X)
         ):
             X = pd.DataFrame(X)
 
             return X
-        else:
-            raise InputInvalidError("""'InputInvalidError' is raised when the
-             input argument 'X' is not either pandas dataframe, numpy array or
-              list of lists.""")
+
+        raise InputInvalidError("""'InputInvalidError' is raised when the input
+         argument 'X' is not either pandas dataframe, numpy array or list of 
+         lists.""")
 
     @staticmethod
     def _check_if_all_single_type(X):
@@ -263,7 +261,7 @@ class MissForest:
             if n_type > 1:
                 raise MultipleDataTypesError(f"Feature {c} has more than one "
                                              f"datatype.")
-    
+
     def _initial_imputation(self, X):
         """
         Class method '_initial_imputation' imputes the values of features using
@@ -296,7 +294,7 @@ class MissForest:
             X[c].fillna(impute_values, inplace=True)
 
         return X
-    
+
     @staticmethod
     def _label_encoding(X, mappings):
         """
@@ -322,7 +320,7 @@ class MissForest:
             X[c] = X[c].map(mappings[c]).astype(int)
 
         return X
-    
+
     @staticmethod
     def _rev_label_encoding(X, rev_mappings):
         """
