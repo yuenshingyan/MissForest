@@ -16,5 +16,5 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Unittesting
       run: |
-         python -m unittest .\missforest\tests\test_missforest.py
+         python -m unittest missforest/tests/test_missforest.py
          
