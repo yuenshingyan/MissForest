@@ -105,7 +105,7 @@ class MissForest:
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
         Return
@@ -128,7 +128,7 @@ class MissForest:
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
         Return
@@ -146,7 +146,7 @@ class MissForest:
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
         Return
@@ -164,10 +164,10 @@ class MissForest:
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
-        categoricals : iterables
+        categoricals : list
         All categorical features of X.
 
         Return
@@ -192,7 +192,7 @@ class MissForest:
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
         """
 
@@ -213,10 +213,10 @@ class MissForest:
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
-        categoricals : iterables
+        categoricals : list
         All categorical features of X.
 
         Return
@@ -241,14 +241,14 @@ class MissForest:
                     raise ValueError("Argument 'initial_guess' only accepts "
                                      "'mean' or 'median'.")
 
-    def _initial_imputation(self, X) -> pd.DataFrame:
+    def _initial_imputation(self, X):
         """Class method '_initial_imputation' imputes the values of features
         using the mean or median if they are numerical variables, else, imputes
         with mode.
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
         Return
@@ -269,7 +269,7 @@ class MissForest:
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
         mappings : dict
@@ -278,7 +278,7 @@ class MissForest:
 
         Return
         ------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame
         Label-encoded dataset (features only).
         """
 
@@ -295,7 +295,7 @@ class MissForest:
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
         rev_mappings : dict
@@ -304,7 +304,7 @@ class MissForest:
 
         Return
         ------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Reverse label-encoded dataset (features only).
         """
 
@@ -314,6 +314,24 @@ class MissForest:
         return X
 
     def fit(self, X, categoricals):
+        """
+        Class method 'fit' checks if the arguments are valid and initiates
+        different class attributes.
+
+        Parameters
+        ----------
+        X : pd.DataFrame of shape (n_samples, n_features)
+        Dataset (features only) that needed to be imputed.
+
+        categoricals : list
+        All categorical features of X.
+
+        Return
+        ------
+        X : pd.DataFrame of shape (n_samples, n_features)
+        Reverse label-encoded dataset (features only).
+        """
+
         if (
                 not isinstance(X, pd.DataFrame) and
                 not isinstance(X, np.ndarray) and
@@ -328,12 +346,23 @@ class MissForest:
         if isinstance(X, list) or all(isinstance(i, list) for i in X):
             X = pd.DataFrame(X)
 
-        if not hasattr(categoricals, '__iter__'):
-            raise ValueError("Argument 'categoricals' must be iterables.")
+        if (
+                not isinstance(categoricals, list) and
+                not all(isinstance(elem, str) for elem in categoricals)
+        ):
+            raise ValueError("Argument 'categoricals' can only be list of "
+                             "str.")
 
         if len(categoricals) < 1:
             raise ValueError(f"Argument 'categoricals' has a len of "
                              f"{len(categoricals)}.")
+
+        # Check for +/- inf
+        if np.any(np.isinf(X.drop(categoricals, axis=1))):
+            raise ValueError("+/- inf values are not supported.")
+
+        if np.any(X.isnull().sum() == len(X)):
+            raise ValueError("One or more columns have all rows missing.")
 
         self._initials = {}
         self._miss_row = {}
@@ -353,14 +382,16 @@ class MissForest:
 
     def transform(self, X):
         """
+        Class method 'transform' imputes all missing values in 'X'.
+
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
         Return
         ------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : pd.DataFrame of shape (n_samples, n_features)
         Imputed dataset (features only).
         """
 
@@ -404,6 +435,24 @@ class MissForest:
         return X
 
     def fit_transform(self, X, categoricals):
+        """
+        Class method 'fit_transform' calls class method 'fit' and 'transform'
+        on 'X'.
+
+        Parameters
+        ----------
+        X : pd.DataFrame of shape (n_samples, n_features)
+        Dataset (features only) that needed to be imputed.
+
+        categoricals : list
+        All categorical features of X.
+
+        Return
+        ------
+        X : pd.DataFrame of shape (n_samples, n_features)
+        Imputed dataset (features only).
+        """
+
         self.fit(X, categoricals)
 
         return self.transform(X)

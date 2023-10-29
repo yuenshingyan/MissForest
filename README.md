@@ -1,12 +1,20 @@
 # MissForest
-This project is a Python implementation of the MissForest algorithm, a powerful tool designed to handle missing values in tabular datasets. The primary goal of this project is to provide users with a more accurate method of imputing missing data.
+This project is a Python implementation of the MissForest algorithm, a powerful 
+tool designed to handle missing values in tabular datasets. The primary goal of 
+this project is to provide users with a more accurate method of imputing 
+missing data.
 
-While MissForest may take more time to process datasets compared to simpler imputation methods, it typically yields more accurate results.
+While MissForest may take more time to process datasets compared to simpler 
+imputation methods, it typically yields more accurate results.
 
-Please note that the efficiency of MissForest is a trade-off for its accuracy. It is designed for those who prioritize data accuracy over processing speed. This makes it an excellent choice for projects where the quality of data is paramount.
+Please note that the efficiency of MissForest is a trade-off for its accuracy. 
+It is designed for those who prioritize data accuracy over processing speed. 
+This makes it an excellent choice for projects where the quality of data is 
+paramount.
 
 # How MissForest Handles Categorical Variables ?
-If the datatype of all values in a feature (besides missing values) are string, it will be inferred as categorical variable and will be label encoded for estimators to work properly. 
+Categorical variables in argument 'categoricals' will be label encoded for
+estimators to work properly. 
 
 # Example
 To install MissForest using pip.
