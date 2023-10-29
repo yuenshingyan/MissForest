@@ -42,13 +42,16 @@ class MissForest:
             raise ValueError("Argument 'rgr' only accept estimators that has"
                              " class methods 'fit' and 'predict'.")
 
+        # make sure 'initial_guess' is str.
         if not isinstance(initial_guess, str):
             raise ValueError("Argument 'initial_guess' only accept str.")
 
+        # make sure 'initial_guess' is either 'median' or 'mean'.
         if initial_guess not in ("median", "mean"):
             raise ValueError("Argument 'initial_guess' can only be 'median' or"
                              " 'mean'.")
 
+        # make sure 'max_iter' is int.
         if not isinstance(max_iter, int):
             raise ValueError("Argument 'max_iter' only accept int.")
 
@@ -253,7 +256,8 @@ class MissForest:
 
         Return
         ------
-        None
+        X : pd.DataFrame of shape (n_samples, n_features)
+        Imputed Dataset (features only).
         """
 
         for c in X.columns:
@@ -278,7 +282,7 @@ class MissForest:
 
         Return
         ------
-        X : pd.DataFrame
+        X : X : pd.DataFrame of shape (n_samples, n_features)
         Label-encoded dataset (features only).
         """
 
@@ -332,6 +336,8 @@ class MissForest:
         Reverse label-encoded dataset (features only).
         """
 
+        # make sure 'X' is either pandas dataframe, numpy array or list of
+        # lists.
         if (
                 not isinstance(X, pd.DataFrame) and
                 not isinstance(X, np.ndarray) and
@@ -343,9 +349,14 @@ class MissForest:
             raise ValueError("Argument 'X' can only be pandas dataframe, numpy"
                              " array or list of list.")
 
-        if isinstance(X, list) or all(isinstance(i, list) for i in X):
+        # if 'X' is a list of list, convert 'X' into a pandas dataframe.
+        if (
+                isinstance(X, np.ndarray) or
+                (isinstance(X, list) and all(isinstance(i, list) for i in X))
+        ):
             X = pd.DataFrame(X)
 
+        # make sure 'categoricals' is a list of str.
         if (
                 not isinstance(categoricals, list) and
                 not all(isinstance(elem, str) for elem in categoricals)
@@ -353,6 +364,7 @@ class MissForest:
             raise ValueError("Argument 'categoricals' can only be list of "
                              "str.")
 
+        # make sure 'categoricals' has at least one variable in it.
         if len(categoricals) < 1:
             raise ValueError(f"Argument 'categoricals' has a len of "
                              f"{len(categoricals)}.")
@@ -361,6 +373,7 @@ class MissForest:
         if np.any(np.isinf(X.drop(categoricals, axis=1))):
             raise ValueError("+/- inf values are not supported.")
 
+        # make sure there is no column with all missing values.
         if np.any(X.isnull().sum() == len(X)):
             raise ValueError("One or more columns have all rows missing.")
 
