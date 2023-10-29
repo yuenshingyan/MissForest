@@ -402,8 +402,8 @@ class MissForest:
         X = self._rev_label_encoding(X_imp, self._rev_mappings)
 
         return X
-    
+
     def fit_transform(self, X, categoricals):
         self.fit(X, categoricals)
-        
+
         return self.transform(X)
