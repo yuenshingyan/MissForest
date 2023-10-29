@@ -1,13 +1,10 @@
 """This module contains class 'TestMissForest'."""
 
-__all__ = ["MissForest"]
-__version__ = "2.1.0"
 __author__ = "Yuen Shing Yan Hindy"
 
 import unittest
 import pandas as pd
 from missforest.missforest import MissForest
-from missforest.errors import InputInvalidError
 
 
 class TestMissForest(unittest.TestCase):
@@ -141,9 +138,9 @@ class TestMissForest(unittest.TestCase):
         })
 
         mf = MissForest()
-        result = mf._get_missing_rows(df)
+        mf._get_missing_rows(df)
         expected_result = {'A': [2], 'B': [0], 'C': [3]}
-        self.assertEqual(result, expected_result)
+        self.assertEqual(mf._miss_row, expected_result)
 
     def test_get_missing_cols(self):
         """Class method 'test_get_missing_cols' test if '_get_missing_cols' of
@@ -159,13 +156,14 @@ class TestMissForest(unittest.TestCase):
         df = pd.DataFrame(data)
 
         # Call the _get_missing_cols method
-        missing_cols = self.missforest._get_missing_cols(df)
+        self.missforest._get_missing_cols(df)
 
         # Define the expected result
         expected_missing_cols = pd.Index(['B', 'C', 'D'])
 
         # Assert that the result is as expected
-        pd.testing.assert_index_equal(missing_cols, expected_missing_cols)
+        pd.testing.assert_index_equal(
+            self.missforest._missing_cols, expected_missing_cols)
 
     def test_get_obs_row(self):
         """Class method 'test_get_obs_row' test if '_get_obs_row' of
@@ -179,14 +177,14 @@ class TestMissForest(unittest.TestCase):
         })
 
         # Call the method and get the result
-        obs_row = self.missforest._get_obs_row(df)
+        self.missforest._get_obs_row(df)
 
         # Check that the result is a pd.Index object
-        self.assertIsInstance(obs_row, pd.Index)
+        self.assertIsInstance(self.missforest._obs_row, pd.Index)
 
         # Check that the result contains the indexes of the rows with no
         # missing values
-        self.assertEqual(obs_row.tolist(), [0, 1, 4])
+        self.assertEqual(self.missforest._obs_row.tolist(), [0, 1, 4])
 
     def test_get_map_and_rev_map(self):
         """Class method 'test_get_map_and_rev_map' test if
@@ -199,8 +197,7 @@ class TestMissForest(unittest.TestCase):
             'C': ['a', 'b', 'c']
         })
 
-        miss_forest = MissForest()
-        mappings, rev_mappings = miss_forest._get_map_and_rev_map(df)
+        self.missforest._get_map_and_rev_map(df, ("A", "B", "C"))
 
         expected_mappings = {
             'A': {'a': 0, 'b': 1},
@@ -213,66 +210,78 @@ class TestMissForest(unittest.TestCase):
             'C': {0: 'a', 1: 'b', 2: 'c'}
         }
 
-        self.assertEqual(mappings, expected_mappings)
-        self.assertEqual(rev_mappings, expected_rev_mappings)
+        self.assertEqual(self.missforest._mappings, expected_mappings)
+        self.assertEqual(self.missforest._rev_mappings, expected_rev_mappings)
 
-    def test_check_if_valid_pandas_dataframe(self):
-        """Class method 'test_check_if_valid_pandas_dataframe' test if
-        '_check_if_valid' of 'MissForest' returns a pandas dataframe if
-         it is given a pandas dataframe."""
-
-        df = pd.DataFrame({
-            'A': ['a', 'b', None],
-            'B': [None, 'b', 'c'],
-            'C': ['a', 'b', 'c']
-        })
-
-        df = self.missforest._check_if_valid(df)
-        self.assertIsInstance(df, pd.DataFrame)
-
-    def test_check_if_valid_numpy_array(self):
-        """Class method 'test_check_if_valid_numpy_array' test if
-        '_check_if_valid' of 'MissForest' returns a pandas dataframe if it is
-        given a numpy array."""
+    def test_get_initials_mean(self):
+        """Class method '_get_initials' test if the initial imputations values
+        are calculated and stored, under the circumstance that argument
+        'initial_guess' of MissForest is set to 'mean'."""
 
         df = pd.DataFrame({
-            'A': ['a', 'b', None],
-            'B': [None, 'b', 'c'],
-            'C': ['a', 'b', 'c']
+            'A': [1, 2, 3, 4],
+            'B': ['a', 'a', 'b', 'c']
         })
 
-        df_numpy_array = self.missforest._check_if_valid(df.to_numpy())
-        self.assertIsInstance(df_numpy_array, pd.DataFrame)
+        self.missforest.initial_guess = 'mean'
+        self.missforest._get_initials(df, ("B"))
+        self.assertEqual(self.missforest._initials["A"], 2.5)
+        self.assertEqual(self.missforest._initials["B"], "a")
 
-    def test_check_if_valid_list_of_lists(self):
-        """Class method 'test_check_if_valid_list_of_lists' test if
-        '_check_if_valid' of 'MissForest' returns a pandas dataframe if it is
-         given a list of lists."""
+    def test_get_initials_median(self):
+        """Class method '_get_initials' test if the initial imputations values
+        are calculated and stored, under the circumstance that argument
+        'initial_guess' of MissForest is set to 'median'."""
 
         df = pd.DataFrame({
-            'A': ['a', 'b', None],
-            'B': [None, 'b', 'c'],
-            'C': ['a', 'b', 'c']
+            'A': [1, 2, 2, 4],
+            'B': ['a', 'a', 'b', 'c']
         })
 
-        df_list_of_lists = self.missforest._check_if_valid(df.values.tolist())
-        self.assertIsInstance(df_list_of_lists, pd.DataFrame)
-
-    def test_check_if_valid_str(self):
-        """Class method 'test_check_if_valid_str' test if
-        '_check_if_valid' of 'MissForest' will raise 'InputInvalidError' if it
-         is given a pandas dataframe in string."""
-
-        df = pd.DataFrame({
-            'A': ['a', 'b', None],
-            'B': [None, 'b', 'c'],
-            'C': ['a', 'b', 'c']
-        })
-
-        with self.assertRaises(InputInvalidError):
-            self.missforest._check_if_valid(df.to_string())
+        self.missforest.initial_guess = 'median'
+        self.missforest._get_initials(df, ("B"))
+        self.assertEqual(self.missforest._initials["A"], 2)
+        self.assertEqual(self.missforest._initials["B"], "a")
 
     def test_initial_imputation_mean(self):
+        """Class method 'test_initial_imputation_mean' test if the missing
+        values are imputed correctly under the circumstance that argument
+        'initial_guess' of MissForest is set to 'mean'."""
+
+        df = pd.DataFrame({
+            'A': [1, 2, None, 4],
+            'B': [None, 2, 3, 4],
+            'C': ["a", "a", "b", "c"]
+        })
+
+        self.missforest.initial_guess = 'mean'
+        self.missforest._get_initials(df, ("C"))
+        X_imp = self.missforest._initial_imputation(df)
+        df["A"].fillna(df["A"].mean(), inplace=True)
+        df["B"].fillna(df["B"].mean(), inplace=True)
+        df["C"].fillna(df["C"].mode(), inplace=True)
+        pd.testing.assert_frame_equal(X_imp, df, check_dtype=False)
+
+    def test_initial_imputation_median(self):
+        """Class method 'test_initial_imputation_median' test if the missing
+        values are imputed correctly under the circumstance that argument
+        'initial_guess' of MissForest is set to 'median'."""
+
+        df = pd.DataFrame({
+            'A': [1, 2, None, 4],
+            'B': [None, 2, 3, 4],
+            'C': ["a", "a", "b", "c"]
+        })
+
+        self.missforest.initial_guess = 'median'
+        self.missforest._get_initials(df, ("C"))
+        X_imp = self.missforest._initial_imputation(df)
+        df["A"].fillna(df["A"].median(), inplace=True)
+        df["B"].fillna(df["B"].median(), inplace=True)
+        df["C"].fillna(df["C"].mode(), inplace=True)
+        pd.testing.assert_frame_equal(X_imp, df, check_dtype=False)
+
+    def test_get_initials_non_existing_feature(self):
         """Class method 'test_initial_imputation_mean' test if the missing
         values are imputed correctly with the mean values if argument
         'initial_guess' is set to 'mean'."""
@@ -280,31 +289,12 @@ class TestMissForest(unittest.TestCase):
         df = pd.DataFrame({
             'A': [1, 2, None, 4],
             'B': [None, 2, 3, 4],
-            'C': [1, 2, 3, None]
+            'C': ["a", "a", "b", "c"]
         })
 
         self.missforest.initial_guess = 'mean'
-        imputed_df = self.missforest._initial_imputation(df)
-        self.assertEqual(imputed_df['A'].mean(), imputed_df['A'].iloc[2])
-        self.assertEqual(imputed_df['B'].mean(), imputed_df['B'].iloc[0])
-        self.assertEqual(imputed_df['C'].mean(), imputed_df['C'].iloc[3])
-
-    def test_initial_imputation_median(self):
-        """Class method 'test_initial_imputation_median' test if the missing
-        values are imputed correctly with the median values if argument
-        'initial_guess' is set to 'median'."""
-
-        df = pd.DataFrame({
-            'A': [1, 2, None, 4],
-            'B': [None, 2, 3, 4],
-            'C': [1, 2, 3, None]
-        })
-
-        self.missforest.initial_guess = 'median'
-        imputed_df = self.missforest._initial_imputation(df)
-        self.assertEqual(imputed_df['A'].median(), imputed_df['A'].iloc[2])
-        self.assertEqual(imputed_df['B'].median(), imputed_df['B'].iloc[0])
-        self.assertEqual(imputed_df['C'].median(), imputed_df['C'].iloc[3])
+        with self.assertRaises(ValueError):
+            self.missforest._get_initials(df, ("D"))
 
     def test_initial_imputation_mode(self):
         """Class method 'test_initial_imputation_mode' test if 'ValueError' is
@@ -314,12 +304,12 @@ class TestMissForest(unittest.TestCase):
         df = pd.DataFrame({
             'A': [1, 2, None, 4],
             'B': [None, 2, 3, 4],
-            'C': [1, 2, 3, None]
+            'C': ["a", "a", "b", "c"]
         })
 
         self.missforest.initial_guess = 'mode'
         with self.assertRaises(ValueError):
-            self.missforest._initial_imputation(df)
+            self.missforest._get_initials(df, ("C"))
 
     def test_label_encoding(self):
         """Class method 'test_label_encoding' test if '_label_encoding' of
