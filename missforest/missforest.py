@@ -66,6 +66,9 @@ class MissForest:
         self._mappings = {}
         self._rev_mappings = {}
         self.categoricals = None
+        self.numerical = None
+        self._all_X_imp_cat = []
+        self._all_X_imp_num = []
         self._is_fitted = False
 
     @staticmethod
@@ -317,7 +320,7 @@ class MissForest:
 
         return X
 
-    def fit(self, X, categoricals):
+    def fit(self, X, categoricals=None):
         """
         Class method 'fit' checks if the arguments are valid and initiates
         different class attributes.
@@ -335,6 +338,8 @@ class MissForest:
         X : pd.DataFrame of shape (n_samples, n_features)
         Reverse label-encoded dataset (features only).
         """
+
+        X = X.copy()
 
         # make sure 'X' is either pandas dataframe, numpy array or list of
         # lists.
@@ -358,19 +363,23 @@ class MissForest:
 
         # make sure 'categoricals' is a list of str.
         if (
+                categoricals is not None and
                 not isinstance(categoricals, list) and
                 not all(isinstance(elem, str) for elem in categoricals)
         ):
             raise ValueError("Argument 'categoricals' can only be list of "
-                             "str.")
+                             "str or NoneType.")
 
         # make sure 'categoricals' has at least one variable in it.
-        if len(categoricals) < 1:
+        if categoricals is not None and len(categoricals) < 1:
             raise ValueError(f"Argument 'categoricals' has a len of "
                              f"{len(categoricals)}.")
 
         # Check for +/- inf
-        if np.any(np.isinf(X.drop(categoricals, axis=1))):
+        if (
+                categoricals is not None and
+                np.any(np.isinf(X.drop(categoricals, axis=1)))
+        ):
             raise ValueError("+/- inf values are not supported.")
 
         # make sure there is no column with all missing values.
@@ -383,7 +392,12 @@ class MissForest:
         self._obs_row = None
         self._mappings = {}
         self._rev_mappings = {}
+
+        if categoricals is None:
+            categoricals = []
+
         self.categoricals = categoricals
+        self.numerical = [c for c in X.columns if c not in categoricals]
 
         self._check_if_all_single_type(X)
         self._get_missing_rows(X)
@@ -411,6 +425,8 @@ class MissForest:
         if not self._is_fitted:
             raise NotFittedError("MissForest is not fitted yet.")
 
+        X = X.copy()
+
         self._get_missing_rows(X)
         self._get_missing_cols(X)
         self._get_obs_row(X)
@@ -419,7 +435,10 @@ class MissForest:
         X_imp = self._initial_imputation(X)
         X_imp = self._label_encoding(X_imp, self._mappings)
 
-        for _ in range(self.max_iter):
+        all_gamma_cat = []
+        all_gamma_num = []
+        n_iter = 0
+        while True:
             for c in self._missing_cols:
                 if c in self._mappings:
                     estimator = deepcopy(self.classifier)
@@ -442,12 +461,51 @@ class MissForest:
                 # Update imputed matrix
                 X_imp.loc[miss_index, c] = y_pred
 
+                self._all_X_imp_cat.append(X_imp[self.categoricals])
+                self._all_X_imp_num.append(X_imp[self.numerical])
+
+            if len(self.categoricals) > 0 and len(self._all_X_imp_cat) >= 2:
+                X_imp_cat = self._all_X_imp_cat[-1]
+                X_imp_cat_prev = self._all_X_imp_cat[-2]
+                gamma_cat = (
+                        (X_imp_cat != X_imp_cat_prev).sum().sum() /
+                        len(self.categoricals)
+                )
+                all_gamma_cat.append(gamma_cat)
+
+            if len(self.numerical) > 0 and len(self._all_X_imp_num) >= 2:
+                X_imp_num = self._all_X_imp_num[-1]
+                X_imp_num_prev = self._all_X_imp_num[-2]
+                gamma_num = (
+                        np.sum(np.sum((X_imp_num - X_imp_num_prev) ** 2)) /
+                        np.sum(np.sum(X_imp_num ** 2))
+                )
+                all_gamma_num.append(gamma_num)
+
+            n_iter += 1
+            if n_iter > self.max_iter:
+                break
+
+            if (
+                    n_iter >= 2 and
+                    len(self.categoricals) > 0 and
+                    all_gamma_cat[-1] > all_gamma_cat[-2]
+            ):
+                break
+
+            if (
+                    n_iter >= 2 and
+                    len(self.numerical) > 0 and
+                    all_gamma_num[-1] > all_gamma_num[-2]
+            ):
+                break
+
         # mapping the encoded values back to its categories.
         X = self._rev_label_encoding(X_imp, self._rev_mappings)
 
         return X
 
-    def fit_transform(self, X, categoricals):
+    def fit_transform(self, X, categoricals=None):
         """
         Class method 'fit_transform' calls class method 'fit' and 'transform'
         on 'X'.
@@ -467,5 +525,6 @@ class MissForest:
         """
 
         self.fit(X, categoricals)
+        X = self.transform(X)
 
-        return self.transform(X)
+        return X
