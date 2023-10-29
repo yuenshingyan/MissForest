@@ -1,7 +1,7 @@
 """This module contains Python class 'MissForest'."""
 
 __all__ = ["MissForest"]
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __author__ = "Yuen Shing Yan Hindy"
 
 from copy import deepcopy
@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from lightgbm import LGBMRegressor
-from missforest.errors import InputInvalidError, MultipleDataTypesError
+from missforest.errors import MultipleDataTypesError, NotFittedError
 
 
 class MissForest:
@@ -56,6 +56,14 @@ class MissForest:
         self.regressor = rgr
         self.initial_guess = initial_guess
         self.max_iter = max_iter
+        self._initials = {}
+        self._miss_row = {}
+        self._missing_cols = None
+        self._obs_row = None
+        self._mappings = {}
+        self._rev_mappings = {}
+        self.categoricals = None
+        self._is_fitted = False
 
     @staticmethod
     def _is_estimator(estimator):
@@ -85,14 +93,12 @@ class MissForest:
             is_has_fit_method = callable(is_has_fit_method)
             is_has_predict_method = callable(is_has_predict_method)
 
-            # assumes it is an estimator if it has 'fit' and 'predict'
-            # methods.
+            # assumes it is an estimator if it has 'fit' and 'predict' methods.
             return is_has_fit_method and is_has_predict_method
         except AttributeError:
             return False
 
-    @staticmethod
-    def _get_missing_rows(X):
+    def _get_missing_rows(self, X):
         """
         Class method '_get_missing_rows' gather the index of any rows that has
         missing values.
@@ -109,17 +115,13 @@ class MissForest:
         their corresponding indexes as values.
         """
 
-        miss_row = {}
         for c in X.columns:
             feature = X[c]
             is_missing = feature.isnull() > 0
             missing_index = feature[is_missing].index
-            miss_row[c] = missing_index
+            self._miss_row[c] = missing_index
 
-        return miss_row
-
-    @staticmethod
-    def _get_missing_cols(X):
+    def _get_missing_cols(self, X):
         """
         Class method '_get_missing_cols' gather the columns of any rows that
         has missing values.
@@ -131,17 +133,13 @@ class MissForest:
 
         Return
         ------
-        missing_cols : pandas.Index
-        The features that have missing values.
+        None
         """
 
         is_missing = X.isnull().sum(axis=0).sort_values() > 0
-        missing_cols = X.columns[is_missing]
+        self._missing_cols = X.columns[is_missing]
 
-        return missing_cols
-
-    @staticmethod
-    def _get_obs_row(X):
+    def _get_obs_row(self, X):
         """
         Class method '_get_obs_row' gather the rows of any rows that do not
         have any missing values.
@@ -153,17 +151,13 @@ class MissForest:
 
         Return
         ------
-        obs_row : pandas.Index
-        The indexes that do not contain any missing values.
+        None
         """
 
         n_null = X.isnull().sum(axis=1)
-        obs_row = X[n_null == 0].index
+        self._obs_row = X[n_null == 0].index
 
-        return obs_row
-
-    @staticmethod
-    def _get_map_and_rev_map(X):
+    def _get_map_and_rev_map(self, X, categoricals):
         """
         Class method '_get_map_and_rev_map' gets the encodings and the reverse
         encodings of categorical variables.
@@ -173,71 +167,21 @@ class MissForest:
         X : {array-like, sparse matrix} of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
+        categoricals : iterables
+        All categorical features of X.
+
         Return
         ------
-        mappings : dict
-        Dictionary that contains the categorical variables as keys and their
-        corresponding encodings as values.
-
-        rev_mappings : dict
-        Dictionary that contains the categorical variables as values and their
-        corresponding encodings as keys.
+        None
         """
 
-        # using a vectorized version of 'type' function to speed up
-        # computations.
-        vectorized_type = np.vectorize(type)
-
-        mappings = {}
-        rev_mappings = {}
         for c in X.columns:
-            feature_without_na = X[c].dropna()
-            feature_without_na_type = vectorized_type(feature_without_na)
-            is_all_str = all(feature_without_na_type == str)
-            if is_all_str:
-                unique_values = X[c].dropna().unique()
-                nunique_values = range(X[c].dropna().nunique())
+            if c in categoricals:
+                unique = X[c].dropna().unique()
+                n_unique = range(X[c].dropna().nunique())
 
-                mappings[c] = dict(zip(unique_values, nunique_values))
-                rev_mappings[c] = dict(zip(nunique_values, unique_values))
-
-        return mappings, rev_mappings
-
-    @staticmethod
-    def _check_if_valid(X):
-        """Class method '_check_if_valid' checks if input argument 'X' is
-        either a pandas dataframe, numpy array or list of lists. If 'X' is a
-        pandas dataframe, returns 'X'. If 'X' is a numpy array or list of lists
-        , 'X' will be converted into pandas dataframe and got returned. If 'X'
-         is not either pandas dataframe, numpy array or list of lists,
-         'InputInvalidError' will be raised.
-
-         Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-        Dataset (features only) that needed to be imputed.
-
-        Return
-        ------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-        Dataset (features only) that needed to be imputed.
-
-         """
-
-        if isinstance(X, pd.DataFrame):
-            return X
-
-        if (
-                isinstance(X, np.ndarray) or
-                isinstance(X, list) and all(isinstance(i, list) for i in X)
-        ):
-            X = pd.DataFrame(X)
-
-            return X
-
-        raise InputInvalidError("""'InputInvalidError' is raised when the input
-         argument 'X' is not either pandas dataframe, numpy array or list of 
-         lists.""")
+                self._mappings[c] = dict(zip(unique, n_unique))
+                self._rev_mappings[c] = dict(zip(n_unique, unique))
 
     @staticmethod
     def _check_if_all_single_type(X):
@@ -262,11 +206,45 @@ class MissForest:
                 raise MultipleDataTypesError(f"Feature {c} has more than one "
                                              f"datatype.")
 
-    def _initial_imputation(self, X):
+    def _get_initials(self, X, categoricals):
         """
-        Class method '_initial_imputation' imputes the values of features using
-        the mean or median if they are numerical variables, else, imputes with
-        mode.
+        Class method '_initial_imputation' calculates and stores the initial
+        imputation values of each features in X.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        Dataset (features only) that needed to be imputed.
+
+        categoricals : iterables
+        All categorical features of X.
+
+        Return
+        ------
+        None
+        """
+
+        intersection = set(categoricals).intersection(set(X.columns))
+        if not intersection == set(categoricals):
+            raise ValueError("Not all features in argument 'categoricals' "
+                             "existed in 'X' columns.")
+
+        for c in X.columns:
+            if c in categoricals:
+                self._initials[c] = X[c].mode().values[0]
+            else:
+                if self.initial_guess == "mean":
+                    self._initials[c] = X[c].mean()
+                elif self.initial_guess == "median":
+                    self._initials[c] = X[c].median()
+                else:
+                    raise ValueError("Argument 'initial_guess' only accepts "
+                                     "'mean' or 'median'.")
+
+    def _initial_imputation(self, X) -> pd.DataFrame:
+        """Class method '_initial_imputation' imputes the values of features
+        using the mean or median if they are numerical variables, else, imputes
+        with mode.
 
         Parameters
         ----------
@@ -275,23 +253,11 @@ class MissForest:
 
         Return
         ------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-        Imputed dataset (features only).
+        None
         """
 
         for c in X.columns:
-            try:
-                if self.initial_guess == "mean":
-                    impute_values = X[c].mean()
-                elif self.initial_guess == "median":
-                    impute_values = X[c].median()
-                else:
-                    raise ValueError("Argument 'initial_guess' only accepts "
-                                     "'mean' or 'median'.")
-            except TypeError:
-                impute_values = X[c].mode().values[0]
-
-            X[c].fillna(impute_values, inplace=True)
+            X[c].fillna(self._initials[c], inplace=True)
 
         return X
 
@@ -347,7 +313,45 @@ class MissForest:
 
         return X
 
-    def fit_transform(self, X):
+    def fit(self, X, categoricals):
+        if (
+                not isinstance(X, pd.DataFrame) and
+                not isinstance(X, np.ndarray) and
+                not (
+                        isinstance(X, list) and
+                        all(isinstance(i, list) for i in X)
+                )
+        ):
+            raise ValueError("Argument 'X' can only be pandas dataframe, numpy"
+                             " array or list of list.")
+
+        if isinstance(X, list) or all(isinstance(i, list) for i in X):
+            X = pd.DataFrame(X)
+
+        if not hasattr(categoricals, '__iter__'):
+            raise ValueError("Argument 'categoricals' must be iterables.")
+
+        if len(categoricals) < 1:
+            raise ValueError(f"Argument 'categoricals' has a len of "
+                             f"{len(categoricals)}.")
+
+        self._initials = {}
+        self._miss_row = {}
+        self._missing_cols = None
+        self._obs_row = None
+        self._mappings = {}
+        self._rev_mappings = {}
+        self.categoricals = categoricals
+
+        self._check_if_all_single_type(X)
+        self._get_missing_rows(X)
+        self._get_missing_cols(X)
+        self._get_obs_row(X)
+        self._get_map_and_rev_map(X, categoricals)
+        self._get_initials(X, categoricals)
+        self._is_fitted = True
+
+    def transform(self, X):
         """
         Parameters
         ----------
@@ -360,39 +364,46 @@ class MissForest:
         Imputed dataset (features only).
         """
 
-        X = self._check_if_valid(X)
-        self._check_if_all_single_type(X)
-        miss_row = self._get_missing_rows(X)
-        miss_col = self._get_missing_cols(X)
-        obs_row = self._get_obs_row(X)
-        mappings, rev_mappings = self._get_map_and_rev_map(X)
+        if not self._is_fitted:
+            raise NotFittedError("MissForest is not fitted yet.")
+
+        self._get_missing_rows(X)
+        self._get_missing_cols(X)
+        self._get_obs_row(X)
+        self._get_map_and_rev_map(X, self.categoricals)
+
         X_imp = self._initial_imputation(X)
-        X_imp = self._label_encoding(X_imp, mappings)
+        X_imp = self._label_encoding(X_imp, self._mappings)
 
         for _ in range(self.max_iter):
-            for c in miss_col:
-                if c in mappings:
+            for c in self._missing_cols:
+                if c in self._mappings:
                     estimator = deepcopy(self.classifier)
                 else:
                     estimator = deepcopy(self.regressor)
 
                 # Fit estimator with imputed X
-                X_obs = X_imp.drop(c, axis=1).loc[obs_row]
-                y_obs = X_imp[c].loc[obs_row]
+                X_obs = X_imp.drop(c, axis=1).loc[self._obs_row]
+                y_obs = X_imp[c].loc[self._obs_row]
                 estimator.fit(X_obs, y_obs)
 
                 # Predict the missing column with the trained estimator
-                miss_index = miss_row[c]
+                miss_index = self._miss_row[c]
                 X_missing = X_imp.loc[miss_index]
                 X_missing = X_missing.drop(c, axis=1)
                 y_pred = estimator.predict(X_missing)
                 y_pred = pd.Series(y_pred)
-                y_pred.index = miss_row[c]
+                y_pred.index = self._miss_row[c]
 
                 # Update imputed matrix
                 X_imp.loc[miss_index, c] = y_pred
 
         # mapping the encoded values back to its categories.
-        X = self._rev_label_encoding(X_imp, rev_mappings)
+        X = self._rev_label_encoding(X_imp, self._rev_mappings)
 
         return X
+    
+    def fit_transform(self, X, categoricals):
+        self.fit(X, categoricals)
+        
+        return self.transform(X)
