@@ -65,7 +65,7 @@ class MissForest:
         self._obs_row = None
         self._mappings = {}
         self._rev_mappings = {}
-        self.categoricals = None
+        self.categorical = None
         self.numerical = None
         self._all_X_imp_cat = []
         self._all_X_imp_num = []
@@ -163,7 +163,7 @@ class MissForest:
         n_null = X.isnull().sum(axis=1)
         self._obs_row = X[n_null == 0].index
 
-    def _get_map_and_rev_map(self, X, categoricals):
+    def _get_map_and_rev_map(self, X, categorical):
         """
         Class method '_get_map_and_rev_map' gets the encodings and the reverse
         encodings of categorical variables.
@@ -173,7 +173,7 @@ class MissForest:
         X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
-        categoricals : list
+        categorical : list
         All categorical features of X.
 
         Return
@@ -182,7 +182,7 @@ class MissForest:
         """
 
         for c in X.columns:
-            if c in categoricals:
+            if c in categorical:
                 unique = X[c].dropna().unique()
                 n_unique = range(X[c].dropna().nunique())
 
@@ -212,7 +212,7 @@ class MissForest:
                 raise MultipleDataTypesError(f"Feature {c} has more than one "
                                              f"datatype.")
 
-    def _get_initials(self, X, categoricals):
+    def _get_initials(self, X, categorical):
         """
         Class method '_initial_imputation' calculates and stores the initial
         imputation values of each features in X.
@@ -222,7 +222,7 @@ class MissForest:
         X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
-        categoricals : list
+        categorical : list
         All categorical features of X.
 
         Return
@@ -230,13 +230,13 @@ class MissForest:
         None
         """
 
-        intersection = set(categoricals).intersection(set(X.columns))
-        if not intersection == set(categoricals):
-            raise ValueError("Not all features in argument 'categoricals' "
+        intersection = set(categorical).intersection(set(X.columns))
+        if not intersection == set(categorical):
+            raise ValueError("Not all features in argument 'categorical' "
                              "existed in 'X' columns.")
 
         for c in X.columns:
-            if c in categoricals:
+            if c in categorical:
                 self._initials[c] = X[c].mode().values[0]
             else:
                 if self.initial_guess == "mean":
@@ -320,7 +320,7 @@ class MissForest:
 
         return X
 
-    def fit(self, X, categoricals=None):
+    def fit(self, X, categorical=None):
         """
         Class method 'fit' checks if the arguments are valid and initiates
         different class attributes.
@@ -330,7 +330,7 @@ class MissForest:
         X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
-        categoricals : list
+        categorical : list
         All categorical features of X.
 
         Return
@@ -361,24 +361,24 @@ class MissForest:
         ):
             X = pd.DataFrame(X)
 
-        # make sure 'categoricals' is a list of str.
+        # make sure 'categorical' is a list of str.
         if (
-                categoricals is not None and
-                not isinstance(categoricals, list) and
-                not all(isinstance(elem, str) for elem in categoricals)
+                categorical is not None and
+                not isinstance(categorical, list) and
+                not all(isinstance(elem, str) for elem in categorical)
         ):
-            raise ValueError("Argument 'categoricals' can only be list of "
+            raise ValueError("Argument 'categorical' can only be list of "
                              "str or NoneType.")
 
-        # make sure 'categoricals' has at least one variable in it.
-        if categoricals is not None and len(categoricals) < 1:
-            raise ValueError(f"Argument 'categoricals' has a len of "
-                             f"{len(categoricals)}.")
+        # make sure 'categorical' has at least one variable in it.
+        if categorical is not None and len(categorical) < 1:
+            raise ValueError(f"Argument 'categorical' has a len of "
+                             f"{len(categorical)}.")
 
         # Check for +/- inf
         if (
-                categoricals is not None and
-                np.any(np.isinf(X.drop(categoricals, axis=1)))
+                categorical is not None and
+                np.any(np.isinf(X.drop(categorical, axis=1)))
         ):
             raise ValueError("+/- inf values are not supported.")
 
@@ -393,18 +393,18 @@ class MissForest:
         self._mappings = {}
         self._rev_mappings = {}
 
-        if categoricals is None:
-            categoricals = []
+        if categorical is None:
+            categorical = []
 
-        self.categoricals = categoricals
-        self.numerical = [c for c in X.columns if c not in categoricals]
+        self.categorical = categorical
+        self.numerical = [c for c in X.columns if c not in categorical]
 
         self._check_if_all_single_type(X)
         self._get_missing_rows(X)
         self._get_missing_cols(X)
         self._get_obs_row(X)
-        self._get_map_and_rev_map(X, categoricals)
-        self._get_initials(X, categoricals)
+        self._get_map_and_rev_map(X, categorical)
+        self._get_initials(X, categorical)
         self._is_fitted = True
 
     def transform(self, X):
@@ -430,7 +430,7 @@ class MissForest:
         self._get_missing_rows(X)
         self._get_missing_cols(X)
         self._get_obs_row(X)
-        self._get_map_and_rev_map(X, self.categoricals)
+        self._get_map_and_rev_map(X, self.categorical)
 
         X_imp = self._initial_imputation(X)
         X_imp = self._label_encoding(X_imp, self._mappings)
@@ -461,15 +461,15 @@ class MissForest:
                 # Update imputed matrix
                 X_imp.loc[miss_index, c] = y_pred
 
-                self._all_X_imp_cat.append(X_imp[self.categoricals])
+                self._all_X_imp_cat.append(X_imp[self.categorical])
                 self._all_X_imp_num.append(X_imp[self.numerical])
 
-            if len(self.categoricals) > 0 and len(self._all_X_imp_cat) >= 2:
+            if len(self.categorical) > 0 and len(self._all_X_imp_cat) >= 2:
                 X_imp_cat = self._all_X_imp_cat[-1]
                 X_imp_cat_prev = self._all_X_imp_cat[-2]
                 gamma_cat = (
                         (X_imp_cat != X_imp_cat_prev).sum().sum() /
-                        len(self.categoricals)
+                        len(self.categorical)
                 )
                 all_gamma_cat.append(gamma_cat)
 
@@ -488,7 +488,7 @@ class MissForest:
 
             if (
                     n_iter >= 2 and
-                    len(self.categoricals) > 0 and
+                    len(self.categorical) > 0 and
                     all_gamma_cat[-1] > all_gamma_cat[-2]
             ):
                 break
@@ -505,7 +505,7 @@ class MissForest:
 
         return X
 
-    def fit_transform(self, X, categoricals=None):
+    def fit_transform(self, X, categorical=None):
         """
         Class method 'fit_transform' calls class method 'fit' and 'transform'
         on 'X'.
@@ -515,7 +515,7 @@ class MissForest:
         X : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
-        categoricals : list
+        categorical : list
         All categorical features of X.
 
         Return
@@ -524,7 +524,7 @@ class MissForest:
         Imputed dataset (features only).
         """
 
-        self.fit(X, categoricals)
+        self.fit(X, categorical)
         X = self.transform(X)
 
         return X
