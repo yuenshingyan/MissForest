@@ -33,7 +33,22 @@ Imputing a dataset:
 
         # default estimators are lgbm classifier and regressor
         mf = MissForest()
-        df_imputed = mf.fit_transform(df)
+        mf.fit(
+            X=train,
+            categorical=["sex", "smoker", "region"]
+        )
+        train_imputed = mf.transform(X=train)
+        test_imputed = mf.transform(X=test)
+        print(test_imputed)
+
+        # or using the 'fit_transform' method
+        mf = MissForest()
+        train_imputed = mf.fit_transform(
+            X=train,
+            categorical=["sex", "smoker", "region"]
+        )
+        test_imputed = mf.transform(X=test)
+        print(test_imputed)
 
 # Imputing with other estimators
 
