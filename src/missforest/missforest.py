@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from lightgbm import LGBMRegressor
-from missforest.errors import MultipleDataTypesError, NotFittedError
+from src.missforest.errors import MultipleDataTypesError, NotFittedError
 
 
 class MissForest:
@@ -477,8 +477,11 @@ class MissForest:
                 X_imp_num = self._all_X_imp_num[-1]
                 X_imp_num_prev = self._all_X_imp_num[-2]
                 gamma_num = (
-                        np.sum(np.sum((X_imp_num - X_imp_num_prev) ** 2)) /
-                        np.sum(np.sum(X_imp_num ** 2))
+                        np.sum(
+                            np.sum(
+                                (X_imp_num - X_imp_num_prev) ** 2, axis=0
+                            ), axis=0) /
+                        np.sum(np.sum(X_imp_num ** 2, axis=0), axis=0)
                 )
                 all_gamma_num.append(gamma_num)
 
