@@ -1,7 +1,7 @@
 """This module contains Python class 'MissForest'."""
 
 __all__ = ["MissForest"]
-__version__ = "2.2.2"
+__version__ = "2.2.3"
 __author__ = "Yuen Shing Yan Hindy"
 
 from copy import deepcopy
