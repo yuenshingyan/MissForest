@@ -4,7 +4,7 @@ __author__ = "Yuen Shing Yan Hindy"
 
 import unittest
 import pandas as pd
-from missforest.missforest import MissForest
+from src.missforest.missforest import MissForest
 
 
 class TestMissForest(unittest.TestCase):
