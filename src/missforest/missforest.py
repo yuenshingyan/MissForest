@@ -1,7 +1,7 @@
 """This module contains Python class 'MissForest'."""
 
 __all__ = ["MissForest"]
-__version__ = "2.3.0"
+__version__ = "2.3.1"
 __author__ = "Yuen Shing Yan Hindy"
 
 from copy import deepcopy
@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from lightgbm import LGBMRegressor
-from src.missforest.errors import MultipleDataTypesError, NotFittedError
+from missforest.errors import MultipleDataTypesError, NotFittedError
 from typing import Any
 from sklearn.base import BaseEstimator
 
