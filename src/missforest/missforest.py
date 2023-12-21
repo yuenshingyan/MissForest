@@ -386,8 +386,6 @@ class MissForest:
         self.numerical = [c for c in x.columns if c not in categorical]
 
         self._check_if_all_single_type(x)
-        self._get_missing_rows(x)
-        self._get_obs_row(x)
         self._get_map_and_rev_map(x, categorical)
         self._get_initials(x, categorical)
         self._is_fitted = True
@@ -411,7 +409,8 @@ class MissForest:
             raise NotFittedError("MissForest is not fitted yet.")
 
         x = x.copy()
-
+        self._get_missing_rows(x)
+        self._get_obs_row(x)
         x_imp = self._initial_imputation(x)
         x_imp = self._label_encoding(x_imp, self._mappings)
 
