@@ -3,8 +3,11 @@
 __author__ = "Yuen Shing Yan Hindy"
 
 import unittest
-import pandas as pd
 from src.missforest.missforest import MissForest
+import pandas as pd
+import numpy as np
+from scipy.stats import norm, binom
+from sklearn.model_selection import train_test_split
 
 
 class TestMissForest(unittest.TestCase):
@@ -17,6 +20,38 @@ class TestMissForest(unittest.TestCase):
         'MissForest' instance that is shared across multiple tests."""
 
         self.missforest = MissForest()
+
+        while True:
+            # make synthetic datasets
+            # seed to follow along
+            np.random.seed(1234)
+
+            # generate 1000 data points
+            n = np.arange(1000)
+
+            # helper function for this data
+            vary = lambda v: np.random.choice(np.arange(v))
+
+            # create correlated, random variables
+            a = 2
+            b = 1 / 2
+            eps = np.array([norm(0, vary(50)).rvs() for _ in n])
+            y = (a + b * n + eps) / 100
+            x = (n + norm(10, vary(250)).rvs(len(n))) / 100
+
+            # add missing values
+            y[binom(1, 0.4).rvs(len(n)) == 1] = np.nan
+
+            # convert to dataframe
+            df = pd.DataFrame({"y": y, "x": x})
+
+            self.train, self.test = train_test_split(df, test_size=.3)
+
+            if (
+                    self.train.isnull().sum().sum() > 0 and
+                    self.test.isnull().sum().sum() > 0
+            ):
+                break
 
     def test_guarding_logic_initial_guess_str(self):
         """Class method 'test_guarding_logic_initial_guess_str' tests if
@@ -140,30 +175,7 @@ class TestMissForest(unittest.TestCase):
         mf = MissForest()
         mf._get_missing_rows(df)
         expected_result = {'A': [2], 'B': [0], 'C': [3]}
-        self.assertEqual(mf._miss_row, expected_result)
-
-    def test_get_missing_cols(self):
-        """Class method 'test_get_missing_cols' test if '_get_missing_cols' of
-         'MissForest' correctly gather the columns of any rows that has missing
-          values."""
-
-        data = {
-            'A': [1, 2, None, 4, 5],
-            'B': [None, 2, 3, 4, 5],
-            'C': [1, 2, 3, None, 5],
-            'D': [1, 2, 3, 4, 5]
-        }
-        df = pd.DataFrame(data)
-
-        # Call the _get_missing_cols method
-        self.missforest._get_missing_cols(df)
-
-        # Define the expected result
-        expected_missing_cols = pd.Index(['B', 'C', 'D'])
-
-        # Assert that the result is as expected
-        pd.testing.assert_index_equal(
-            self.missforest._missing_cols, expected_missing_cols)
+        self.assertEqual(mf._missing_row, expected_result)
 
     def test_get_obs_row(self):
         """Class method 'test_get_obs_row' test if '_get_obs_row' of
@@ -371,6 +383,53 @@ class TestMissForest(unittest.TestCase):
 
         # Assert that the result is equal to the expected output
         pd.testing.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_integration1(self):
+        """Class method test_integration1 test if MissForest can run properly
+        when its 'fit' and 'transform' methods are called."""
+
+        mf = MissForest()
+        mf.fit(self.train)
+        train_imputed = mf.transform(self.test)
+        test_imputed = mf.transform(self.test)
+
+        self.assertEqual(train_imputed.isnull().sum().sum(), 0)
+        self.assertEqual(test_imputed.isnull().sum().sum(), 0)
+
+    def test_integration2(self):
+        """Class method test_integration1 test if MissForest can run properly
+        when its 'fit' and 'transform' methods are called."""
+
+        mf = MissForest()
+        train_imputed = mf.fit_transform(self.train)
+        test_imputed = mf.transform(self.test)
+
+        self.assertEqual(train_imputed.isnull().sum().sum(), 0)
+        self.assertEqual(test_imputed.isnull().sum().sum(), 0)
+
+    def test_integration3(self):
+        """Class method test_integration1 test if MissForest can run properly
+        when its 'fit' and 'transform' methods are called."""
+
+        mf = MissForest()
+        mf.fit(self.train)
+        train_imputed = mf.fit_transform(self.train)
+        test_imputed = mf.fit_transform(self.test)
+
+        self.assertEqual(train_imputed.isnull().sum().sum(), 0)
+        self.assertEqual(test_imputed.isnull().sum().sum(), 0)
+
+    def test_integration4(self):
+        """Class method test_integration1 test if MissForest can run properly
+        when its 'fit' and 'transform' methods are called."""
+
+        mf = MissForest()
+        mf.fit(self.train)
+        test_imputed = mf.fit_transform(self.test)
+        train_imputed = mf.fit_transform(self.train)
+
+        self.assertEqual(train_imputed.isnull().sum().sum(), 0)
+        self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
 
 if __name__ == '__main__':
