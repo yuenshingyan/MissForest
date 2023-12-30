@@ -7,8 +7,8 @@ __author__ = "Yuen Shing Yan Hindy"
 from copy import deepcopy
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import RandomForestRegressor
+from lightgbm import LGBMClassifier
+from lightgbm import LGBMRegressor
 from missforest.errors import MultipleDataTypesError, NotFittedError
 from typing import Any
 from sklearn.base import BaseEstimator
@@ -33,8 +33,8 @@ class MissForest:
      If ``median``, the initial imputation will use the median of the features.
     """
 
-    def __init__(self, clf: Any | BaseEstimator = RandomForestClassifier(),
-                 rgr: Any | BaseEstimator = RandomForestRegressor(),
+    def __init__(self, clf: Any | BaseEstimator = LGBMClassifier(),
+                 rgr: Any | BaseEstimator = LGBMRegressor(),
                  initial_guess: str = 'median', max_iter: int = 5) -> None:
         # make sure the classifier is None (no input) or an estimator.
         if not self._is_estimator(clf):
