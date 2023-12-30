@@ -12,6 +12,7 @@ from lightgbm import LGBMRegressor
 from missforest.errors import MultipleDataTypesError, NotFittedError
 from typing import Any
 from sklearn.base import BaseEstimator
+import warnings
 
 
 class MissForest:
@@ -307,6 +308,17 @@ class MissForest:
 
         return x
 
+    @staticmethod
+    def _add_unseen_categories(x, mappings):
+        for k, v in mappings.items():
+            for category in x[k].unique():
+                if category not in v:
+                    warnings.warn("Unseen category found in dataset. New label"
+                                  " will be added.")
+                    mappings[k][category] = max(v.values()) + 1
+
+        return mappings
+
     def fit(self, x: pd.DataFrame, categorical: list = None):
         """
         Class method 'fit' checks if the arguments are valid and initiates
@@ -409,9 +421,13 @@ class MissForest:
             raise NotFittedError("MissForest is not fitted yet.")
 
         x = x.copy()
+        if x.isnull().sum().sum() == 0:
+            raise ValueError("'x' must have at least one missing value.")
+
         self._get_missing_rows(x)
         self._get_obs_row(x)
         x_imp = self._initial_imputation(x)
+        self._mappings = self._add_unseen_categories(x_imp, self._mappings)
         x_imp = self._label_encoding(x_imp, self._mappings)
 
         all_gamma_cat = []
