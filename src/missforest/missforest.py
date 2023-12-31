@@ -1,7 +1,7 @@
 """This module contains Python class 'MissForest'."""
 
 __all__ = ["MissForest"]
-__version__ = "2.4.1"
+__version__ = "2.4.2"
 __author__ = "Yuen Shing Yan Hindy"
 
 from copy import deepcopy
@@ -308,8 +308,7 @@ class MissForest:
 
         return x
 
-    @staticmethod
-    def _add_unseen_categories(x, mappings):
+    def _add_unseen_categories(self, x, mappings):
         for k, v in mappings.items():
             for category in x[k].unique():
                 if category not in v:
@@ -317,7 +316,9 @@ class MissForest:
                                   " will be added.")
                     mappings[k][category] = max(v.values()) + 1
 
-        return mappings
+        rev_mappings = {k: {v2: k2 for k2, v2 in v.items()} for k, v in mappings.items()}
+
+        self._mappings, self._rev_mappings =  mappings, rev_mappings
 
     def fit(self, x: pd.DataFrame, categorical: list = None):
         """
@@ -427,7 +428,7 @@ class MissForest:
         self._get_missing_rows(x)
         self._get_obs_row(x)
         x_imp = self._initial_imputation(x)
-        self._mappings = self._add_unseen_categories(x_imp, self._mappings)
+        self._add_unseen_categories(x_imp, self._mappings)
         x_imp = self._label_encoding(x_imp, self._mappings)
 
         all_gamma_cat = []
