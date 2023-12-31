@@ -309,6 +309,30 @@ class MissForest:
         return x
 
     def _add_unseen_categories(self, x, mappings):
+        """
+        Class method '_add_unseen_categories' updates mappings and reverse
+        mappings, if there are any unseen categories.
+
+        Parameters
+        ----------
+        x : pd.DataFrame of shape (n_samples, n_features)
+            Dataset (features only) that needed to be imputed.
+
+        mappings : dict
+            Dictionary that contains the categorical variables as keys and
+            their corresponding encodings as values.
+
+        Return
+        ------
+        rev_mappings : dict
+            Dictionary that contains the categorical variables as keys and
+            their corresponding encodings as values.
+
+        mappings : dict
+            Dictionary that contains the categorical variables as keys and
+            their corresponding encodings as values.
+        """
+
         for k, v in mappings.items():
             for category in x[k].unique():
                 if category not in v:
