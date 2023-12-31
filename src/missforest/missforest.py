@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from lightgbm import LGBMRegressor
-from src.missforest.errors import MultipleDataTypesError, NotFittedError
+from missforest.errors import MultipleDataTypesError, NotFittedError
 from typing import Any
 from sklearn.base import BaseEstimator
 import warnings
