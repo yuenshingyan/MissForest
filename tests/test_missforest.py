@@ -431,6 +431,16 @@ class TestMissForest(unittest.TestCase):
         self.assertEqual(train_imputed.isnull().sum().sum(), 0)
         self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
+    def test_integration_unseen_categories(self):
+        df = pd.DataFrame({"A": [1, 2, 3, 4], "B": ["C1", "C2", "C3", "C1"]})
+        train = df[df["B"] != "C1"].copy()
+        test = df[df["B"] == "C1"].copy()
+        train.iloc[0, 0] = np.nan
+        test.iloc[0, 0] = np.nan
+        self.missforest.fit(train, categorical=["B"])
+        self.missforest.transform(train)
+        self.missforest.transform(test)
+
 
 if __name__ == '__main__':
     unittest.main()

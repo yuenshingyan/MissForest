@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from lightgbm import LGBMRegressor
-from missforest.errors import MultipleDataTypesError, NotFittedError
+from src.missforest.errors import MultipleDataTypesError, NotFittedError
 from typing import Any
 from sklearn.base import BaseEstimator
 import warnings
@@ -456,8 +456,10 @@ class MissForest:
                 # Update imputed matrix
                 x_imp.loc[miss_index, c] = y_pred
 
-                self._all_x_imp_cat.append(x_imp[self.categorical])
-                self._all_x_imp_num.append(x_imp[self.numerical])
+                self._all_x_imp_cat.append(
+                    x_imp[self.categorical].reset_index(drop=True))
+                self._all_x_imp_num.append(
+                    x_imp[self.numerical].reset_index(drop=True))
 
             if len(self.categorical) > 0 and len(self._all_x_imp_cat) >= 2:
                 x_imp_cat = self._all_x_imp_cat[-1]
