@@ -124,6 +124,8 @@ class MissForest:
         their corresponding indexes as values.
         """
 
+        self._missing_row = {}
+        
         for c in x.columns:
             feature = x[c]
             is_missing = feature.isnull() > 0
