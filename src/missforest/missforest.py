@@ -1,4 +1,4 @@
-"""This module contains Python class 'MissForest'."""
+"""This module contains 'MissForest' code."""
 
 __all__ = ["MissForest"]
 __version__ = "2.4.4"
@@ -25,12 +25,12 @@ class MissForest:
     rgr : estimator object, default=None.
     This object is assumed to implement the scikit-learn estimator api.
 
-     max_iter : int, default=5
-     Determines the number of iteration.
+    max_iter : int, default=5
+    Determines the number of iteration.
 
-     initial_guess : string, callable or None, default='median'
-     If ``mean``, the initial imputation will use the median of the features.
-     If ``median``, the initial imputation will use the median of the features.
+    initial_guess : string, callable or None, default='median'
+    If ``mean``, the initial imputation will use the median of the features.
+    If ``median``, the initial imputation will use the median of the features.
     """
 
     def __init__(self, clf: Any | BaseEstimator = LGBMClassifier(),
@@ -77,20 +77,25 @@ class MissForest:
     @staticmethod
     def _is_estimator(estimator: Any | BaseEstimator) -> bool:
         """
-        Class method '_is_estimator_or_none' is used to check if argument
-        'estimator' is an object that implement the scikit-learn estimator api.
+        Checks if argument 'estimator' is an object that implement the
+        scikit-learn estimator api.
 
         Parameters
         ----------
         estimator : estimator object
             This object is assumed to implement the scikit-learn estimator api.
 
-        Return
-        ------
+        Returns
+        -------
         If the argument 'estimator' is None or has class method 'fit' and
         'predict', return True.
 
         Otherwise, return False
+
+        Raises
+        ------
+        AttributeError
+            If 'estimator' has no class methods 'fit' or 'predict'.
         """
 
         try:
@@ -109,16 +114,15 @@ class MissForest:
 
     def _get_missing_rows(self, x: pd.DataFrame) -> None:
         """
-        Class method '_get_missing_rows' gather the index of any rows that has
-        missing values.
+        Gather the index of any rows that has missing values.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
 
-        Return
-        ------
+        Returns
+        -------
         miss_row : dict
         Dictionary that contains features which has missing values as keys, and
         their corresponding indexes as values.
@@ -135,17 +139,12 @@ class MissForest:
 
     def _get_obs_row(self, x: pd.DataFrame) -> None:
         """
-        Class method '_get_obs_row' gather the rows of any rows that do not
-        have any missing values.
+        Gather the rows of any rows that do not have any missing values.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
-
-        Return
-        ------
-        None
         """
 
         n_null = x.isnull().sum(axis=1)
@@ -154,8 +153,7 @@ class MissForest:
     def _get_map_and_rev_map(self, x: pd.DataFrame, categorical: list
                              ) -> None:
         """
-        Class method '_get_map_and_rev_map' gets the encodings and the reverse
-        encodings of categorical variables.
+        Gets the encodings and the reverse encodings of categorical variables.
 
         Parameters
         ----------
@@ -164,10 +162,6 @@ class MissForest:
 
         categorical : list
             All categorical features of x.
-
-        Return
-        ------
-        None
         """
 
         for c in x.columns:
@@ -181,14 +175,18 @@ class MissForest:
     @staticmethod
     def _check_if_all_single_type(x: pd.DataFrame) -> None:
         """
-        Class method '_check_if_all_single_type' checks if all values in the
-        feature belongs to the same datatype. If not, error
-        'MultipleDataTypesError will be raised.'
+        Checks if all values in the feature belongs to the same datatype. If
+        not, error 'MultipleDataTypesError will be raised.'
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needed to be imputed.
+
+        Raises
+        ------
+        MultipleDataTypesError
+            If not all values in the feature belongs to the same datatype.
         """
 
         vectorized_type = np.vectorize(type)
@@ -203,8 +201,8 @@ class MissForest:
 
     def _get_initials(self, x: pd.DataFrame, categorical: list) -> None:
         """
-        Class method '_initial_imputation' calculates and stores the initial
-        imputation values of each features in x.
+        Computes and stores the initial imputation values of each features
+        in x.
 
         Parameters
         ----------
@@ -214,9 +212,12 @@ class MissForest:
         categorical : list
         All categorical features of x.
 
-        Return
+        Raises
         ------
-        None
+        ValueError
+            If not all features in argument 'categorical' existed in 'x'
+            columns.
+            If argument 'initial_guess' is not 'mean' or 'median'.
         """
 
         intersection = set(categorical).intersection(set(x.columns))
@@ -237,17 +238,17 @@ class MissForest:
                                      "'mean' or 'median'.")
 
     def _initial_imputation(self, x: pd.DataFrame) -> pd.DataFrame:
-        """Class method '_initial_imputation' imputes the values of features
-        using the mean or median if they are numerical variables, else, imputes
-        with mode.
+        """
+        Imputes the values of features using the mean or median if they are
+        numerical variables, else, imputes with mode.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
             Dataset (features only) that needed to be imputed.
 
-        Return
-        ------
+        Returns
+        -------
         x : pd.DataFrame of shape (n_samples, n_features)
             Imputed Dataset (features only).
         """
@@ -260,8 +261,7 @@ class MissForest:
     @staticmethod
     def _label_encoding(x: pd.DataFrame, mappings: dict) -> pd.DataFrame:
         """
-        Class method '_label_encoding' performs label encoding on given
-        features and the input mappings.
+        Performs label encoding on given features and the input mappings.
 
         Parameters
         ----------
@@ -272,8 +272,8 @@ class MissForest:
             Dictionary that contains the categorical variables as keys and
             their corresponding encodings as values.
 
-        Return
-        ------
+        Returns
+        -------
         x : pd.DataFrame of shape (n_samples, n_features)
             Label-encoded dataset (features only).
         """
@@ -287,8 +287,8 @@ class MissForest:
     def _rev_label_encoding(x: pd.DataFrame, rev_mappings: dict
                             ) -> pd.DataFrame:
         """
-        Class method '_rev_label_encoding' performs reverse label encoding on
-        given features and the input reverse mappings.
+        Performs reverse label encoding on given features and the input
+        reverse mappings.
 
         Parameters
         ----------
@@ -299,8 +299,8 @@ class MissForest:
             Dictionary that contains the categorical variables as keys and
             their corresponding encodings as values.
 
-        Return
-        ------
+        Returns
+        -------
         x : pd.DataFrame of shape (n_samples, n_features)
             Reverse label-encoded dataset (features only).
         """
@@ -312,8 +312,8 @@ class MissForest:
 
     def _add_unseen_categories(self, x, mappings):
         """
-        Class method '_add_unseen_categories' updates mappings and reverse
-        mappings, if there are any unseen categories.
+        Updates mappings and reverse mappings, if there are any unseen
+        categories.
 
         Parameters
         ----------
@@ -324,8 +324,8 @@ class MissForest:
             Dictionary that contains the categorical variables as keys and
             their corresponding encodings as values.
 
-        Return
-        ------
+        Returns
+        -------
         rev_mappings : dict
             Dictionary that contains the categorical variables as keys and
             their corresponding encodings as values.
@@ -338,8 +338,8 @@ class MissForest:
         for k, v in mappings.items():
             for category in x[k].unique():
                 if category not in v:
-                    warnings.warn("Unseen category found in dataset. New label"
-                                  " will be added.")
+                    warnings.warn("Unseen category found in dataset. "
+                                  "New label will be added.")
                     mappings[k][category] = max(v.values()) + 1
 
         rev_mappings = {
@@ -349,8 +349,8 @@ class MissForest:
 
     def fit(self, x: pd.DataFrame, categorical: list = None):
         """
-        Class method 'fit' checks if the arguments are valid and initiates
-        different class attributes.
+        Checks if the arguments are valid and initiates different class
+        attributes.
 
         Parameters
         ----------
@@ -360,10 +360,21 @@ class MissForest:
         categorical : list, default=None
         All categorical features of x.
 
-        Return
-        ------
+        Returns
+        -------
         x : pd.DataFrame of shape (n_samples, n_features)
         Reverse label-encoded dataset (features only).
+
+        Raises
+        ------
+        ValueError
+            If argument 'x' is not pandas dataframe, numpy array or list
+            of list.
+            If argument 'categorical' is not list of str or NoneType.
+            If argument 'categorical' is NoneType, and it has length of less
+            than one.
+            If there inf values presents in argument 'x'.
+            If there are one or more columns have all rows missing.
         """
 
         x = x.copy()
@@ -378,8 +389,8 @@ class MissForest:
                         all(isinstance(i, list) for i in x)
                 )
         ):
-            raise ValueError("Argument 'x' can only be pandas dataframe, numpy"
-                             " array or list of list.")
+            raise ValueError("Argument 'x' can only be pandas dataframe, "
+                             "numpy array or list of list.")
 
         # if 'x' is a list of list, convert 'x' into a pandas dataframe.
         if (
@@ -432,17 +443,25 @@ class MissForest:
 
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         """
-        Class method 'transform' imputes all missing values in 'x'.
+        Imputes all missing values in 'x'.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
             Dataset (features only) that needed to be imputed.
 
-        Return
-        ------
+        Returns
+        -------
         x : pd.DataFrame of shape (n_samples, n_features)
             Imputed dataset (features only).
+
+        Raises
+        ------
+        NotFittedError
+            If 'MissForest' is not fitted.
+
+        ValueError
+            If there are no missing values in 'x'.
         """
 
         if not self._is_fitted:
@@ -533,8 +552,7 @@ class MissForest:
     def fit_transform(self, x: pd.DataFrame, categorical: list = None
                       ) -> pd.DataFrame:
         """
-        Class method 'fit_transform' calls class method 'fit' and 'transform'
-        on 'x'.
+        Calls class method 'fit' and 'transform' on 'x'.
 
         Parameters
         ----------
@@ -544,8 +562,8 @@ class MissForest:
         categorical : list, default=None
         All categorical features of x.
 
-        Return
-        ------
+        Returns
+        -------
         x : pd.DataFrame of shape (n_samples, n_features)
         Imputed dataset (features only).
         """
