@@ -1,7 +1,7 @@
 """This module contains Python class 'MissForest'."""
 
 __all__ = ["MissForest"]
-__version__ = "2.4.2"
+__version__ = "2.4.4"
 __author__ = "Yuen Shing Yan Hindy"
 
 from copy import deepcopy
@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from lightgbm import LGBMRegressor
-from missforest.errors import MultipleDataTypesError, NotFittedError
+from .errors import MultipleDataTypesError, NotFittedError
 from typing import Any
 from sklearn.base import BaseEstimator
 import warnings
@@ -342,9 +342,10 @@ class MissForest:
                                   " will be added.")
                     mappings[k][category] = max(v.values()) + 1
 
-        rev_mappings = {k: {v2: k2 for k2, v2 in v.items()} for k, v in mappings.items()}
+        rev_mappings = {
+            k: {v2: k2 for k2, v2 in v.items()} for k, v in mappings.items()}
 
-        self._mappings, self._rev_mappings =  mappings, rev_mappings
+        self._mappings, self._rev_mappings = mappings, rev_mappings
 
     def fit(self, x: pd.DataFrame, categorical: list = None):
         """

@@ -1,6 +1,6 @@
 [project]
 name = "MissForest"
-version = "2.4.2"
+version = "2.4.4"
 authors = [
   { name="Yuen Shing Yan Hindy", email="yuenshingyan@gmail.com" },
 ]
