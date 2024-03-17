@@ -30,6 +30,7 @@ Imputing a dataset:
     
     if __name__ == "__main__":
         df = pd.read_csv("insurance.csv")
+        train, test = tran_test_split(df, test_size=.3, shuffle=True, random_state=42)        
 
         # default estimators are lgbm classifier and regressor
         mf = MissForest()
@@ -60,7 +61,7 @@ Imputing a dataset:
     
     if __name__ == "__main__":
         df = pd.read_csv("insurance.csv")
-        df_or = df.copy()
+
         for c in df.columns:
             random_index = np.random.choice(df.index, size=100)
             df.loc[random_index, c] = np.nan
