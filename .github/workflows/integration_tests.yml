@@ -21,4 +21,4 @@ jobs:
     - name: Run Integration Tests
       run: |
          ls
-         python 'tests/integration_tests';
+         python .\home\runner\work\MissForest\tests\integration_tests.py;
