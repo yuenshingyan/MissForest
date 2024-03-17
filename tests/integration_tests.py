@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import norm, binom
 from sklearn.model_selection import train_test_split
-from src.missforest import MissForest
+from src.missforest.missforest import MissForest
 
 
 class IntegrationTests(unittest.TestCase):
@@ -110,7 +110,3 @@ class IntegrationTests(unittest.TestCase):
         self.missforest.fit(train, categorical=["B"])
         self.missforest.transform(train)
         self.missforest.transform(test)
-
-
-if __name__ == '__main__':
-    unittest.main()
