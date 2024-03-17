@@ -1,4 +1,4 @@
-name: IntegrationTests
+name: Unittests
 
 on: [push]
 
@@ -20,5 +20,4 @@ jobs:
         pip install -r requirements.txt
     - name: Run Integration Tests
       run: |
-         cd tests
-         python integration_tests.py;
+         python run_tests.py;
