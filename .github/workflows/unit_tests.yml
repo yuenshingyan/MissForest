@@ -20,4 +20,4 @@ jobs:
         pip install -r requirements.txt
     - name: Run Integration Tests
       run: |
-         python -m tests/unit_tests
+         python -m 'tests/unit_tests';
