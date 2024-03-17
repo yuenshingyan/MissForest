@@ -20,5 +20,5 @@ jobs:
         pip install -r requirements.txt
     - name: Run Integration Tests
       run: |
-         ls
-         python .\home\runner\work\MissForest\tests\unit_tests.py;
+         cd tests 
+         python unit_tests.py;
