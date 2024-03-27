@@ -5,6 +5,7 @@ __version__ = "2.5.5"
 __author__ = "Yuen Shing Yan Hindy"
 
 from copy import deepcopy
+from typing import Union
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
@@ -41,8 +42,8 @@ class MissForest:
         If `median`, initial imputation will use the median of the features.
     """
 
-    def __init__(self, clf: Any | BaseEstimator = LGBMClassifier(),
-                 rgr: Any | BaseEstimator = LGBMRegressor(),
+    def __init__(self, clf: Union[Any, BaseEstimator] = LGBMClassifier(),
+                 rgr: Union[Any, BaseEstimator] = LGBMRegressor(),
                  initial_guess: str = "median", max_iter: int = 5) -> None:
         # make sure the classifier is None (no input) or an estimator.
         if not _is_estimator(clf):
@@ -102,7 +103,7 @@ class MissForest:
                 missing_row[c] = missing_index
 
         return missing_row
-    
+
     @staticmethod
     def _get_obs_rows(x: pd.DataFrame) -> pd.Index:
         """
@@ -112,7 +113,7 @@ class MissForest:
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
             Dataset (features only) that needed to be imputed.
-            
+
         Returns
         -------
         pd.Index
@@ -120,12 +121,12 @@ class MissForest:
         """
 
         n_null = x.isnull().sum(axis=1)
-        
+
         return x[n_null == 0].index
-    
+
     def _get_map_and_rev_map(
             self, x: pd.DataFrame
-    ) -> Tuple[Dict[Any, int], Dict[int, Any]] | Tuple[Dict, Dict]:
+    ) -> Union[Tuple[Dict[Any, int], Dict[int, Any]], Tuple[Dict, Dict]]:
         """
         Gets the encodings and the reverse encodings of categorical variables.
 
@@ -133,13 +134,13 @@ class MissForest:
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
             Dataset (features only) that needed to be imputed.
-            
+
         Returns
         -------
         mappings : dict
             Dictionary that contains the categorical variables as keys and
             their corresponding encodings as values.
-        
+
         rev_mappings : dict
             Dictionary that contains the categorical variables as keys and
             their corresponding encodings as values.
@@ -147,7 +148,7 @@ class MissForest:
 
         mappings = {}
         rev_mappings = {}
-        
+
         for c in x.columns:
             if c in self.categorical:
                 unique = x[c].dropna().unique()
@@ -155,12 +156,12 @@ class MissForest:
 
                 mappings[c] = dict(zip(unique, n_unique))
                 rev_mappings[c] = dict(zip(n_unique, unique))
-                
+
         return mappings, rev_mappings
 
-    def _compute_initial_imputations(self, x: pd.DataFrame, 
+    def _compute_initial_imputations(self, x: pd.DataFrame,
                                      categorical: Iterable[Any]
-                                     ) -> Dict[Any, str | np.float64]:
+                                     ) -> Dict[Any, Union[str, np.float64]]:
         """
         Computes and stores the initial imputation values of each features
         in x.
@@ -203,7 +204,7 @@ class MissForest:
 
     @staticmethod
     def _initial_impute(x: pd.DataFrame,
-                        initial_imputations: Dict[Any, str | np.float64]
+                        initial_imputations: Dict[Any, Union[str, np.float64]]
                         ) -> pd.DataFrame:
         """
         Imputes the values of features using the mean or median if they are
@@ -227,11 +228,11 @@ class MissForest:
             x[c].fillna(initial_imputations[c], inplace=True)
 
         return x
-    
+
     @staticmethod
     def _add_unseen_categories(
             x, mappings
-    ) -> Tuple[Dict[Any, int], Dict[int, Any]] | Tuple[Dict, Dict]:
+    ) -> Union[Tuple[Dict[Any, int], Dict[int, Any]], Tuple[Dict, Dict]]:
         """
         Updates mappings and reverse mappings, if there are any unseen
         categories.
@@ -269,7 +270,7 @@ class MissForest:
         return mappings, rev_mappings
 
     def compute_gamma_categorical(self, all_x_imp_cat: list
-                                  ) -> np.ndarray | int:
+                                  ) -> Union[np.ndarray, int]:
         """
         Compute and returns Gamma of categorical variables in imputed 'x'.
 
@@ -296,7 +297,7 @@ class MissForest:
             return 0
 
     def compute_gamma_numerical(self, all_x_imp_num: list
-                                ) -> np.ndarray | int:
+                                ) -> Union[np.ndarray, int]:
         """
         Compute and returns Gamma of numerical variables in imputed 'x'.
 
