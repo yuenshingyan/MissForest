@@ -1,4 +1,5 @@
 # MissForest
+
 This project is a Python implementation of the MissForest algorithm, a powerful 
 tool designed to handle missing values in tabular datasets. The primary goal of 
 this project is to provide users with a more accurate method of imputing 
@@ -13,74 +14,79 @@ This makes it an excellent choice for projects where the quality of data is
 paramount.
 
 # How MissForest Handles Categorical Variables ?
+
 Categorical variables in argument 'categoricals' will be label encoded for
 estimators to work properly. 
 
 # Example
+
 To install MissForest using pip.
 
-    pip install MissForest
+```console
+pip install MissForest
+```
 
 Imputing a dataset:
 
-    from missforest.missforest import MissForest
-    import pandas as pd
-    import numpy as np
-    
-    
-    if __name__ == "__main__":
-        df = pd.read_csv("insurance.csv")
-        train, test = tran_test_split(df, test_size=.3, shuffle=True, random_state=42)        
+```python
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from missforest.missforest import MissForest
 
-        # default estimators are lgbm classifier and regressor
-        mf = MissForest()
-        mf.fit(
-            X=train,
-            categorical=["sex", "smoker", "region"]
-        )
-        train_imputed = mf.transform(X=train)
-        test_imputed = mf.transform(X=test)
-        print(test_imputed)
+df = pd.read_csv("insurance.csv")
+train, test = tran_test_split(df, test_size=.3, shuffle=True, random_state=42)
 
-        # or using the 'fit_transform' method
-        mf = MissForest()
-        train_imputed = mf.fit_transform(
-            X=train,
-            categorical=["sex", "smoker", "region"]
-        )
-        test_imputed = mf.transform(X=test)
-        print(test_imputed)
+# default estimators are lgbm classifier and regressor
+mf = MissForest()
+mf.fit(
+    X=train,
+    categorical=["sex", "smoker", "region"]
+)
+train_imputed = mf.transform(X=train)
+test_imputed = mf.transform(X=test)
+print(test_imputed)
+
+# or using the 'fit_transform' method
+mf = MissForest()
+train_imputed = mf.fit_transform(
+    X=train,
+    categorical=["sex", "smoker", "region"]
+)
+test_imputed = mf.transform(X=test)
+print(test_imputed)
+```
 
 # Imputing with other estimators
 
-    from missforest.missforest import MissForest
-    import pandas as pd
-    import numpy as np
-    from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-    
-    
-    if __name__ == "__main__":
-        df = pd.read_csv("insurance.csv")
+```python
+from missforest.missforest import MissForest
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
-        for c in df.columns:
-            random_index = np.random.choice(df.index, size=100)
-            df.loc[random_index, c] = np.nan
+df = pd.read_csv("insurance.csv")
 
-    clf = RandomForestClassifier(n_jobs=-1)
-    rgr = RandomForestRegressor(n_jobs=-1)
+for c in df.columns:
+    random_index = np.random.choice(df.index, size=100)
+    df.loc[random_index, c] = np.nan
 
-    mf = MissForest(clf, rgr)
-    df_imputed = mf.fit_transform(df)
+clf = RandomForestClassifier(n_jobs=-1)
+rgr = RandomForestRegressor(n_jobs=-1)
+
+mf = MissForest(clf, rgr)
+df_imputed = mf.fit_transform(df)
+```
 
 
 
 # Benchmark
 
-                Mean Absolute Percentage Error
-               missForest | mean/mode | Difference
-     charges        2.65%       9.72%       -7.07%
-         age        1.16%       2.77%       -1.61%
-         bmi        1.18%       1.25%       -0.07%
-         sex        21.21       31.82       -10.61
-      smoker         4.24        9.90        -5.66
-      region        46.67       38.96        +7.71
+Mean Absolute Percentage Error
+|         | missForest | mean/mode | Difference |
+|:-------:|:----------:|:---------:|:----------:|
+| charges | 2.65%      | 9.72%     |  -7.07%    |
+| age     | 1.16%      | 2.77%     |  -1.61%    |
+| bmi     | 1.18%      | 1.25%     |  -0.07%    |
+| sex     | 21.21      | 31.82     |  -10.61    |
+| smoker  |  4.24      |  9.90     |   -5.66    |
+| region  | 46.67      | 38.96     |   +7.71    |
