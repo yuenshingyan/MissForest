@@ -6,14 +6,14 @@ __all__ = [
 ]
 
 
-from typing import Any
+from typing import Any, Union
 from sklearn.base import BaseEstimator
 import pandas as pd
 import numpy as np
 from ._errors import MultipleDataTypesError
 
 
-def _is_estimator(estimator: Any | BaseEstimator) -> bool:
+def _is_estimator(estimator: Union[Any, BaseEstimator]) -> bool:
     """
     Checks if argument 'estimator' is an object that implement the
     scikit-learn estimator api.
