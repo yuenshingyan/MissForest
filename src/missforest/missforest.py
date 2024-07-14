@@ -1,4 +1,4 @@
-"""This module contains 'MissForest' code."""
+"""This module contains `MissForest` code."""
 
 __all__ = ["MissForest"]
 __version__ = "2.5.5"
@@ -37,36 +37,35 @@ class MissForest:
     max_iter : int, default=5
         Determines the number of iteration.
 
-    initial_guess : string, callable or None, default='median'
+    initial_guess : string, callable or None, default=`median`
         If `mean`, initial imputation will use the median of the features.
         If `median`, initial imputation will use the median of the features.
     """
-
     def __init__(self, clf: Union[Any, BaseEstimator] = LGBMClassifier(),
                  rgr: Union[Any, BaseEstimator] = LGBMRegressor(),
                  initial_guess: str = "median", max_iter: int = 5) -> None:
-        # make sure the classifier is None (no input) or an estimator.
+        # Make sure the classifier is None (no input) or an estimator.
         if not _is_estimator(clf):
-            raise ValueError("Argument 'clf' only accept estimators that has "
-                             "class methods 'fit' and 'predict'.")
+            raise ValueError("Argument `clf` only accept estimators that has "
+                             "class methods `fit` and `predict`.")
 
-        # make sure the regressor is None (no input) or an estimator.
+        # Make sure the regressor is None (no input) or an estimator.
         if not _is_estimator(rgr):
-            raise ValueError("Argument 'rgr' only accept estimators that has "
-                             "class methods 'fit' and 'predict'.")
+            raise ValueError("Argument `rgr` only accept estimators that has "
+                             "class methods `fit` and `predict`.")
 
-        # make sure 'initial_guess' is str.
+        # Make sure `initial_guess` is str.
         if not isinstance(initial_guess, str):
-            raise ValueError("Argument 'initial_guess' only accept str.")
+            raise ValueError("Argument `initial_guess` only accept str.")
 
-        # make sure 'initial_guess' is either 'median' or 'mean'.
+        # Make sure `initial_guess` is either `median` or `mean`.
         if initial_guess not in ("median", "mean"):
-            raise ValueError("Argument 'initial_guess' can only be 'median' "
-                             "or 'mean'.")
+            raise ValueError("Argument `initial_guess` can only be `median` "
+                             "or `mean`.")
 
-        # make sure 'max_iter' is int.
+        # Make sure `max_iter` is int.
         if not isinstance(max_iter, int):
-            raise ValueError("Argument 'max_iter' only accept int.")
+            raise ValueError("Argument `max_iter` only accept int.")
 
         self.classifier = clf
         self.regressor = rgr
@@ -80,20 +79,19 @@ class MissForest:
     @staticmethod
     def _get_missing_rows(x: pd.DataFrame) -> Dict[Any, pd.Index]:
         """
-        Gather the index of any rows that has missing values.
+        Gather the indices of any rows that have missing values.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needed to be imputed.
+            Dataset (features only) that needs to be imputed.
 
         Returns
         -------
-        missing_row : dict
-            Dictionary that contains features which has missing values as
-            keys, and their corresponding indexes as values.
+        missing_rows : dict
+            Dictionary containing features with missing values as keys,
+            and their corresponding indices as values.
         """
-
         missing_row = {}
         for c in x.columns:
             feature = x[c]
@@ -107,19 +105,20 @@ class MissForest:
     @staticmethod
     def _get_obs_rows(x: pd.DataFrame) -> pd.Index:
         """
-        Gather the rows of any rows that do not have any missing values.
+        Gather the rows of any DataFrame that do not contain any missing
+        values.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needed to be imputed.
+            Dataset (features only) that needs to be checked for missing
+            values.
 
         Returns
         -------
         pd.Index
-            Indexes of rows that do not have any missing values.
+            Indexes of rows that do not contain any missing values.
         """
-
         n_null = x.isnull().sum(axis=1)
 
         return x[n_null == 0].index
@@ -133,19 +132,18 @@ class MissForest:
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needed to be imputed.
+            Dataset (features only) that needs to be encoded.
 
         Returns
         -------
         mappings : dict
-            Dictionary that contains the categorical variables as keys and
+            Dictionary containing the categorical variables as keys and
             their corresponding encodings as values.
 
         rev_mappings : dict
-            Dictionary that contains the categorical variables as keys and
-            their corresponding encodings as values.
+            Dictionary containing the categorical variables as keys and
+            their corresponding reverse encodings as values.
         """
-
         mappings = {}
         rev_mappings = {}
 
@@ -163,29 +161,30 @@ class MissForest:
                                      categorical: Iterable[Any]
                                      ) -> Dict[Any, Union[str, np.float64]]:
         """
-        Computes and stores the initial imputation values of each features
-        in x.
+        Computes and stores the initial imputation values for each feature
+        in `x`.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needed to be imputed.
+            The dataset consisting solely of features that require imputation.
 
-        categorical: Iterable[Any]
-            All categorical features of x.
+        categorical : Iterable[Any]
+            An iterable containing identifiers for all categorical features
+            present in `x`.
 
         Raises
         ------
         ValueError
-            If not all features in argument 'categorical' existed in 'x'
-            columns.
-            If argument 'initial_guess' is not 'mean' or 'median'.
+            - Raised if any feature specified in the `categorical` argument
+            does not exist within the columns of `x`.
+            - Raised if the `initial_guess` argument is provided and its
+            value is neither 'mean' nor 'median'.
         """
-
         intersection = set(categorical).intersection(set(x.columns))
         if not intersection == set(categorical):
-            raise ValueError("Not all features in argument 'categorical' "
-                             "existed in 'x' columns.")
+            raise ValueError("Not all features in argument `categorical` "
+                             "existed in `x` columns.")
 
         initial_imputations = {}
         for c in x.columns:
@@ -197,8 +196,8 @@ class MissForest:
                 elif self.initial_guess == "median":
                     initial_imputations[c] = x[c].median()
                 else:
-                    raise ValueError("Argument 'initial_guess' only accepts "
-                                     "'mean' or 'median'.")
+                    raise ValueError("Argument `initial_guess` only accepts "
+                                     "`mean` or `median`.")
 
         return initial_imputations
 
@@ -207,23 +206,22 @@ class MissForest:
                         initial_imputations: Dict[Any, Union[str, np.float64]]
                         ) -> pd.DataFrame:
         """
-        Imputes the values of features using the mean or median if they are
-        numerical variables, else, imputes with mode.
+        Imputes the values of features using the mean or median for
+        numerical variables; otherwise, uses the mode for imputation.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needed to be imputed.
+            Dataset (features only) that needs to be imputed.
 
         initial_imputations : dict
-            All initial imputation values for each feature.
+            Dictionary containing initial imputation values for each feature.
 
         Returns
         -------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Imputed Dataset (features only).
+            Imputed dataset (features only).
         """
-
         for c in x.columns:
             x[c].fillna(initial_imputations[c], inplace=True)
 
@@ -234,29 +232,30 @@ class MissForest:
             x, mappings
     ) -> Union[Tuple[Dict[Any, int], Dict[int, Any]], Tuple[Dict, Dict]]:
         """
-        Updates mappings and reverse mappings, if there are any unseen
-        categories.
+        Updates mappings and reverse mappings based on any unseen categories
+        encountered.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needed to be imputed.
+            The dataset consisting solely of features that require imputation.
 
         mappings : dict
-            Dictionary that contains the categorical variables as keys and
-            their corresponding encodings as values.
+            A dictionary mapping categorical variables to their encoded
+            representations.
 
         Returns
         -------
         rev_mappings : dict
-            Dictionary that contains the categorical variables as keys and
-            their corresponding encodings as values.
+            A dictionary mapping categorical variables to their original
+            values, effectively serving as the reverse of the `mappings`
+            parameter.
 
-        mappings : dict
-            Dictionary that contains the categorical variables as keys and
-            their corresponding encodings as values.
+        updated_mappings : dict
+            An updated dictionary reflecting the latest mappings between
+            categorical variables and their encoded representations,
+            incorporating any new categories encountered during processing.
         """
-
         for k, v in mappings.items():
             for category in x[k].unique():
                 if category not in v:
@@ -269,25 +268,24 @@ class MissForest:
 
         return mappings, rev_mappings
 
-    def compute_gamma_categorical(self, all_x_imp_cat: list
-                                  ) -> Union[np.ndarray, int]:
+    def _compute_gamma_cat(self, all_x_imp_cat: list
+                           ) -> Union[np.ndarray, int]:
         """
-        Compute and returns Gamma of categorical variables in imputed 'x'.
+        Compute and return Gamma of categorical variables in imputed `x`.
 
         Parameters
         ----------
-        all_x_imp_cat: list
-            All categorical variables in imputed 'x'.
+        all_x_imp_cat : list
+            All categorical variables in imputed `x`.
 
         Returns
         -------
         np.ndarray
-            Gamma of categorical variables in imputed 'x'.
+            Gamma of categorical variables in imputed `x`.
         int
-            Gamma of 0, to indicates that there is no differences in
-            imputed 'x'.
+            Gamma of 0, indicating that there are no differences in
+            imputed `x`.
         """
-
         if len(self.categorical) > 0 and len(all_x_imp_cat) >= 2:
             x_imp_cat = all_x_imp_cat[-1]
             x_imp_cat_prev = all_x_imp_cat[-2]
@@ -296,25 +294,25 @@ class MissForest:
         else:
             return 0
 
-    def compute_gamma_numerical(self, all_x_imp_num: list
-                                ) -> Union[np.ndarray, int]:
+    def _compute_gamma_num(self, all_x_imp_num: list
+                           ) -> Union[np.ndarray, int]:
         """
-        Compute and returns Gamma of numerical variables in imputed 'x'.
+        Compute and return the Gamma of numerical variables in imputed `x`.
 
         Parameters
         ----------
-        all_x_imp_num: list
-            All numerical variables in imputed 'x'.
+        all_x_imp_num : list
+            All numerical variables in imputed `x`.
 
         Returns
         -------
         np.ndarray
-            Gamma of numerical variables in imputed 'x'.
+            Gamma of numerical variables in imputed `x`. This array contains
+            the calculated values.
         int
-            Gamma of 0, to indicates that there is no differences in
-            imputed 'x'.
+            Indicates that there are no differences in imputed `x`, with 0
+            representing this state.
         """
-
         if len(self.numerical) > 0 and len(all_x_imp_num) >= 2:
             x_imp_num = all_x_imp_num[-1]
             x_imp_num_prev = all_x_imp_num[-2]
@@ -326,15 +324,15 @@ class MissForest:
 
     def fit(self, x: pd.DataFrame, categorical: Iterable[Any] = None):
         """
-        Checks if the arguments are valid and initiates different class
+        Checks if the arguments are valid and initializes different class
         attributes.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needed to be imputed.
+            Dataset (features only) that needs to be imputed.
 
-        categorical: Iterable[Any], default=None
+        categorical : Iterable[Any], default=None
             All categorical features of x.
 
         Returns
@@ -345,18 +343,17 @@ class MissForest:
         Raises
         ------
         ValueError
-            - If argument 'x' is not pandas dataframe, numpy array or list
-              of list.
-            - If argument 'categorical' is not list of str or NoneType.
-            - If argument 'categorical' is NoneType, and it has length of less
-              than one.
-            - If there inf values presents in argument 'x'.
-            - If there are one or more columns have all rows missing.
+            - If argument `x` is not a pandas DataFrame, NumPy array, or
+              list of lists.
+            - If argument `categorical` is not a list of strings or NoneType.
+            - If argument `categorical` is NoneType and has a length of
+              less than one.
+            - If there are inf values present in argument `x`.
+            - If there are one or more columns with all rows missing.
         """
-
         x = x.copy()
 
-        # make sure 'x' is either pandas dataframe, numpy array or list of
+        # Make sure `x` is either pandas dataframe, numpy array or list of
         # lists.
         if (
                 not isinstance(x, pd.DataFrame) and
@@ -366,38 +363,38 @@ class MissForest:
                         all(isinstance(i, list) for i in x)
                 )
         ):
-            raise ValueError("Argument 'x' can only be pandas dataframe, "
+            raise ValueError("Argument `x` can only be pandas dataframe, "
                              "numpy array or list of list.")
 
-        # if 'x' is a list of list, convert 'x' into a pandas dataframe.
+        # If `x` is a list of list, convert `x` into a pandas dataframe.
         if (
                 isinstance(x, np.ndarray) or
                 (isinstance(x, list) and all(isinstance(i, list) for i in x))
         ):
             x = pd.DataFrame(x)
 
-        # make sure 'categorical' is a list of str.
+        # Make sure `categorical` is a list of str.
         if (
                 categorical is not None and
                 not isinstance(categorical, list) and
                 not all(isinstance(elem, str) for elem in categorical)
         ):
-            raise ValueError("Argument 'categorical' can only be list of "
+            raise ValueError("Argument `categorical` can only be list of "
                              "str or NoneType.")
 
-        # make sure 'categorical' has at least one variable in it.
+        # Make sure `categorical` has at least one variable in it.
         if categorical is not None and len(categorical) < 1:
-            raise ValueError(f"Argument 'categorical' has a len of "
+            raise ValueError(f"Argument `categorical` has a len of "
                              f"{len(categorical)}.")
 
-        # Check for +/- inf
+        # Check for positive or negative inf.
         if (
                 categorical is not None and
                 np.any(np.isinf(x.drop(categorical, axis=1)))
         ):
             raise ValueError("+/- inf values are not supported.")
 
-        # make sure there is no column with all missing values.
+        # Make sure there is no column with all missing values.
         if np.any(x.isnull().sum() == len(x)):
             raise ValueError("One or more columns have all rows missing.")
 
@@ -412,29 +409,29 @@ class MissForest:
 
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         """
-        Imputes all missing values in 'x'.
+        Imputes all missing values in `x`.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needed to be imputed.
+            Dataset (features only) that needs to be imputed.
 
         Returns
         -------
-        Imputed dataset (features only).
+        pd.DataFrame
+            Imputed dataset (features only).
 
         Raises
         ------
         NotFittedError
-            If 'MissForest' is not fitted.
+            If `MissForest` is not fitted.
 
         ValueError
-            If there are no missing values in 'x'.
+            If there are no missing values in `x`.
         """
-
         x = x.copy()
         if x.isnull().sum().sum() == 0:
-            raise ValueError("Argument 'x' must contains at least one "
+            raise ValueError("Argument `x` must contains at least one "
                              "missing value.")
 
         if not self._is_fitted:
@@ -461,12 +458,12 @@ class MissForest:
                 else:
                     estimator = deepcopy(self.regressor)
 
-                # Fit estimator with imputed x
+                # Fit estimator with imputed x.
                 x_obs = x_imp.drop(c, axis=1).loc[obs_rows]
                 y_obs = x_imp[c].loc[obs_rows]
                 estimator.fit(x_obs, y_obs)
 
-                # Predict the missing column with the trained estimator
+                # Predict the missing column with the trained estimator.
                 miss_index = missing_rows[c]
                 x_missing = x_imp.loc[miss_index]
                 x_missing = x_missing.drop(c, axis=1)
@@ -474,7 +471,7 @@ class MissForest:
                 y_pred = pd.Series(y_pred)
                 y_pred.index = missing_rows[c]
 
-                # Update imputed matrix
+                # Update imputed matrix.
                 x_imp.loc[miss_index, c] = y_pred
 
                 all_x_imp_cat.append(
@@ -482,8 +479,8 @@ class MissForest:
                 all_x_imp_num.append(
                     x_imp[self.numerical].reset_index(drop=True))
 
-            all_gamma_cat.append(self.compute_gamma_categorical(all_x_imp_cat))
-            all_gamma_num.append(self.compute_gamma_numerical(all_x_imp_num))
+            all_gamma_cat.append(self._compute_gamma_cat(all_x_imp_cat))
+            all_gamma_num.append(self._compute_gamma_num(all_x_imp_num))
 
             n_iter += 1
             if n_iter > self.max_iter:
@@ -505,28 +502,27 @@ class MissForest:
             ):
                 break
 
-        # mapping the encoded values back to its categories.
+        # Mapping encoded values back to its categories.
         return _rev_label_encoding(x_imp, rev_mappings)
 
     def fit_transform(self, x: pd.DataFrame, categorical: Iterable[Any] = None
                       ) -> pd.DataFrame:
         """
-        Calls class method 'fit' and 'transform' on 'x'.
+        Calls class methods `fit` and `transform` on `x`.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needed to be imputed.
+            Dataset (features only) that needs to be imputed.
 
-        categorical: Iterable[Any], default=None
-            All categorical features of x.
+        categorical : Iterable[Any], default=None
+            All categorical features of `x`.
 
         Returns
         -------
         pd.DataFrame of shape (n_samples, n_features)
             Imputed dataset (features only).
         """
-
         self.fit(x, categorical)
 
         return self.transform(x)

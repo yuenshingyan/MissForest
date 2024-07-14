@@ -1,4 +1,4 @@
-"""This module contains class 'TestMissForest'."""
+"""This module contains class `TestMissForest`."""
 
 __author__ = "Yuen Shing Yan Hindy"
 
@@ -8,17 +8,21 @@ import numpy as np
 from scipy.stats import norm, binom
 from sklearn.model_selection import train_test_split
 from src.missforest.missforest import MissForest
-from src.missforest.missforest import _is_estimator
 from src.missforest._label_encoding import _label_encoding, _rev_label_encoding
+from src.missforest._validate import (
+    _validate_single_datatype_features,
+    _is_estimator
+)
+from src.missforest._errors import MultipleDataTypesError
 
 
 class UnitTests(unittest.TestCase):
-    """Unit-tests all class methods in 'TestMissForest'."""
+    """Unit-tests all class methods in `TestMissForest`."""
 
     def setUp(self):
-        """Class method 'setUp' is a special method that is automatically
+        """Class method `setUp` is a special method that is automatically
         called before each test method is executed. It is used to set up
-        'MissForest' instance that is shared across multiple tests."""
+        `MissForest` instance that is shared across multiple tests."""
 
         self.missforest = MissForest()
 
@@ -56,44 +60,44 @@ class UnitTests(unittest.TestCase):
 
     @staticmethod
     def test_guarding_logic_initial_guess_str():
-        """Tests if 'MissForest' can be instantiated properly with argument
-        'initial_guess' being 'mean' and 'median'."""
+        """Tests if `MissForest` can be instantiated properly with argument
+        `initial_guess` being `mean` and `median`."""
 
         MissForest(initial_guess="mean")
         MissForest(initial_guess="median")
 
     def test_guarding_logic_initial_guess_non_str(self):
-        """Tests if 'ValueError' will be raised if 'MissForest' is improperly
-        instantiated with argument 'initial_guess' being integer."""
+        """Tests if `ValueError` will be raised if `MissForest` is improperly
+        instantiated with argument `initial_guess` being integer."""
 
         with self.assertRaises(ValueError):
             MissForest(initial_guess=10)
 
     def test_guarding_logic_initial_guess_not_mean_or_median(self):
-        """Tests if 'ValueError' will be raised if 'MissForest' is
-        improperly instantiated  with argument 'initial_guess' being string
-        but not 'mean' or 'median'."""
+        """Tests if `ValueError` will be raised if `MissForest` is
+        improperly instantiated  with argument `initial_guess` being string
+        but not `mean` or `median`."""
 
         with self.assertRaises(ValueError):
             MissForest(initial_guess="mode")
 
     @staticmethod
     def test_guarding_logic_max_iter_int():
-        """Tests if 'MissForest' can be instantiated properly with argument
-        'max_iter' being datatype 'int'."""
+        """Tests if `MissForest` can be instantiated properly with argument
+        `max_iter` being datatype `int`."""
 
         MissForest(max_iter=3)
 
     def test_guarding_logic_max_iter_non_int(self):
-        """Tests if 'ValueError' will be raised if 'MissForest' is improperly
-        instantiated with argument 'max_iter' being datatype 'float'."""
+        """Tests if `ValueError` will be raised if `MissForest` is improperly
+        instantiated with argument `max_iter` being datatype `float`."""
 
         with self.assertRaises(ValueError):
             MissForest(max_iter=3.5)
 
     def test_is_estimator(self):
-        """Tests if class method '_is_estimator' of 'MissForest' returns
-        'True' if argument is a class object that has 'fit' and 'predict'
+        """Tests if class method `_is_estimator` of `MissForest` returns
+        `True` if argument is a class object that has `fit` and `predict`
         methods."""
 
         class TestEstimator:
@@ -110,8 +114,8 @@ class UnitTests(unittest.TestCase):
         self.assertTrue(_is_estimator(test_estimator))
 
     def test_is_estimator_no_fit(self):
-        """Tests if class method '_is_estimator' of 'MissForest' returns
-        'False' if argument is a class object that only has 'predict'
+        """Tests if class method `_is_estimator` of `MissForest` returns
+        `False` if argument is a class object that only has `predict`
         method."""
 
         class TestEstimator:
@@ -125,8 +129,8 @@ class UnitTests(unittest.TestCase):
         self.assertFalse(_is_estimator(test_estimator))
 
     def test_is_estimator_no_predict(self):
-        """Tests if class method '_is_estimator' of 'MissForest' returns
-        'False' if argument is a class object that only has 'fit' method."""
+        """Tests if class method `_is_estimator` of `MissForest` returns
+        `False` if argument is a class object that only has `fit` method."""
 
         class TestEstimator:
             def __init__(self):
@@ -139,8 +143,8 @@ class UnitTests(unittest.TestCase):
         self.assertFalse(_is_estimator(test_estimator))
 
     def test_is_estimator_no_fit_or_predict(self):
-        """Tests if class method '_is_estimator' of 'MissForest' returns
-        'False' if argument is a class object that has no 'fit' or 'predict'
+        """Tests if class method `_is_estimator` of `MissForest` returns
+        `False` if argument is a class object that has no `fit` or `predict`
         methods."""
 
         class TestEstimator:
@@ -152,14 +156,14 @@ class UnitTests(unittest.TestCase):
         self.assertFalse(_is_estimator(test_estimator))
 
     def test_is_estimator_none(self):
-        """Tests if class method '_is_estimator' of 'MissForest' returns
-        'False' if argument is None."""
+        """Tests if class method `_is_estimator` of `MissForest` returns
+        `False` if argument is None."""
 
         test_estimator = None
         self.assertFalse(_is_estimator(test_estimator))
 
     def test_get_missing_rows(self):
-        """Tests if '_get_missing_rows' of 'MissForest' can correctly gather
+        """Tests if `_get_missing_rows` of `MissForest` can correctly gather
         the index of any rows that has missing values."""
 
         df = pd.DataFrame({
@@ -173,7 +177,7 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(mf._get_missing_rows(df), expected_result)
 
     def test_get_obs_row(self):
-        """Tests if '_get_obs_row' of 'MissForest' correctly gather the rows
+        """Tests if `_get_obs_row` of `MissForest` correctly gather the rows
         of any rows that do not have any missing values."""
 
         df = pd.DataFrame({
@@ -191,7 +195,7 @@ class UnitTests(unittest.TestCase):
             self.missforest._get_obs_rows(df).tolist(), [0, 1, 4])
 
     def test_get_map_and_rev_map(self):
-        """Tests if 'test_get_map_and_rev_map' correctly construct
+        """Tests if `test_get_map_and_rev_map` correctly construct
         dictionaries for label encoding and reverse-label encoding."""
 
         df = pd.DataFrame({
@@ -218,38 +222,38 @@ class UnitTests(unittest.TestCase):
 
     def test_get_initials_mean(self):
         """Tests if the initial imputations values are calculated and stored,
-        under the circumstance that argument 'initial_guess' of MissForest
-        is set to 'mean'."""
+        under the circumstance that argument `initial_guess` of MissForest
+        is set to `mean`."""
 
         df = pd.DataFrame({
             'A': [1, 2, 3, 4],
             'B': ['a', 'a', 'b', 'c']
         })
 
-        self.missforest.initial_guess = 'mean'
+        self.missforest.initial_guess = "mean"
         self.assertEqual(
             self.missforest._compute_initial_imputations(
                 df, ["B"]), {'A': 2.5, 'B': 'a'})
 
     def test_get_initials_median(self):
         """Tests if the initial imputations values are calculated and stored,
-        under the circumstance that argument 'initial_guess' of MissForest
-        is set to 'median'."""
+        under the circumstance that argument `initial_guess` of MissForest
+        is set to `median`."""
 
         df = pd.DataFrame({
             'A': [1, 2, 2, 4],
             'B': ['a', 'a', 'b', 'c']
         })
 
-        self.missforest.initial_guess = 'median'
+        self.missforest.initial_guess = "median"
         self.assertEqual(
             self.missforest._compute_initial_imputations(
                 df, ("B")), {'A': 2.0, 'B': 'a'})
 
     def test_initial_imputation_mean(self):
         """Tests if the missing values are imputed correctly under the
-        circumstance that argument 'initial_guess' of MissForest is set to
-        'mean'."""
+        circumstance that argument `initial_guess` of MissForest is set to
+        `mean`."""
 
         df = pd.DataFrame({
             'A': [1, 2, None, 4],
@@ -257,7 +261,7 @@ class UnitTests(unittest.TestCase):
             'C': ["a", "a", "b", "c"]
         })
 
-        self.missforest.initial_guess = 'mean'
+        self.missforest.initial_guess = "mean"
         initial_imputations = self.missforest._compute_initial_imputations(
             df, ("C"))
         x_imp = self.missforest._initial_impute(df, initial_imputations)
@@ -268,8 +272,8 @@ class UnitTests(unittest.TestCase):
 
     def test_initial_imputation_median(self):
         """Tests if the missing values are imputed correctly under the
-        circumstance that argument 'initial_guess' of MissForest is set to
-        'median'."""
+        circumstance that argument `initial_guess` of MissForest is set to
+        `median`."""
 
         df = pd.DataFrame({
             'A': [1, 2, None, 4],
@@ -277,7 +281,7 @@ class UnitTests(unittest.TestCase):
             'C': ["a", "a", "b", "c"]
         })
 
-        self.missforest.initial_guess = 'median'
+        self.missforest.initial_guess = "median"
         initial_imputations = self.missforest._compute_initial_imputations(
             df, ("C"))
         X_imp = self.missforest._initial_impute(df, initial_imputations)
@@ -288,7 +292,7 @@ class UnitTests(unittest.TestCase):
 
     def test_get_initials_non_existing_feature(self):
         """Tests if the missing values are imputed correctly with the mean
-        values if argument 'initial_guess' is set to 'mean'."""
+        values if argument `initial_guess` is set to `mean`."""
 
         df = pd.DataFrame({
             'A': [1, 2, None, 4],
@@ -296,14 +300,14 @@ class UnitTests(unittest.TestCase):
             'C': ["a", "a", "b", "c"]
         })
 
-        self.missforest.initial_guess = 'mean'
+        self.missforest.initial_guess = "mean"
         with self.assertRaises(ValueError):
             self.missforest._compute_initial_imputations(df, ("D"))
 
     def test_initial_imputation_mode(self):
-        """Tests if 'ValueError' is raised if values other than 'mean' or
-        'median' is passed to class method '_initial_imputation_mode' of
-        'MissForest'."""
+        """Tests if `ValueError` is raised if values other than `mean` or
+        `median` is passed to class method `_initial_imputation_mode` of
+        `MissForest`."""
 
         df = pd.DataFrame({
             'A': [1, 2, None, 4],
@@ -311,13 +315,13 @@ class UnitTests(unittest.TestCase):
             'C': ["a", "a", "b", "c"]
         })
 
-        self.missforest.initial_guess = 'mode'
+        self.missforest.initial_guess = "mode"
         with self.assertRaises(ValueError):
             self.missforest._compute_initial_imputations(df, ("C"))
 
     @staticmethod
     def test_label_encoding():
-        """Tests if '_label_encoding' of 'MissForest' correctly label encode
+        """Tests if `_label_encoding` of `MissForest` correctly label encode
         the values in the pandas dataframe."""
 
         df = pd.DataFrame({
@@ -347,7 +351,7 @@ class UnitTests(unittest.TestCase):
 
     @staticmethod
     def test_rev_label_encoding():
-        """Tests if '_rev_label_encoding' of 'MissForest' correctly reverse
+        """Tests if `_rev_label_encoding` of `MissForest` correctly reverse
         label encode the values in the pandas dataframe."""
 
         # Create a DataFrame with missing values
@@ -375,3 +379,11 @@ class UnitTests(unittest.TestCase):
 
         # Assert that the result is equal to the expected output
         pd.testing.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_validate_single_datatype_features(self):
+        """Tests if '_validate_single_datatype_features' of `MissForest` 
+        will raise `MultipleDataTypesError` properly."""
+        df = pd.DataFrame(
+            data={'mixed_column': ['123', 456, True, 'hello', None]})
+        with self.assertRaises(MultipleDataTypesError):
+            _validate_single_datatype_features(df)
