@@ -21,65 +21,125 @@ from ._label_encoding import (
 )
 from typing import Any, Tuple, Iterable, Dict
 from sklearn.base import BaseEstimator
+from tqdm import tqdm
 import warnings
 
 
 class MissForest:
     """
-    Parameters
+    Attributes
     ----------
-    clf : estimator object, default=None.
-        This object is assumed to implement the scikit-learn estimator api.
+    classifier : Union[Any, BaseEstimator]
+        Estimator that predicts missing values of categorical columns.
+    regressor : Union[Any, BaseEstimator]
+        Estimator that predicts missing values of numerical columns.
+    initial_guess : str
+        Determines the method of initial imputation.
+    max_iter : int
+        Maximum iterations of imputing.
+    early_stopping : bool
+        Determines if early stopping will be executed.
+    categorical_columns : list
+        All categorical columns of given dataframe `x`.
+    numerical_columns : list
+        All numerical columns of given dataframe `x`.
+    _is_fitted : bool
+        A state that determines if an instance of `MissForest` is fitted.
 
-    rgr : estimator object, default=None.
-        This object is assumed to implement the scikit-learn estimator api.
-
-    max_iter : int, default=5
-        Determines the number of iteration.
-
-    initial_guess : string, callable or None, default=`median`
-        If `mean`, initial imputation will use the median of the features.
-        If `median`, initial imputation will use the median of the features.
+    Methods
+    -------
+    _get_missing_rows(x: pd.DataFrame)
+        Gather the indices of any rows that have missing values.
+    _get_obs_rows(x: pd.DataFrame)
+        Gather the rows of any DataFrame that do not contain any missing
+        values.
+    _get_map_and_rev_map(self, x: pd.DataFrame)
+        Gets the encodings and the reverse encodings of categorical variables.
+    _compute_initial_imputations(self, x: pd.DataFrame,
+                                     categorical: Iterable[Any])
+        Computes and stores the initial imputation values for each feature
+        in `x`.
+    _initial_impute(x: pd.DataFrame,
+                        initial_imputations: Dict[Any, Union[str, np.float64]])
+        Imputes the values of features using the mean or median for
+        numerical variables; otherwise, uses the mode for imputation.
+    _add_unseen_categories(x, mappings)
+        Updates mappings and reverse mappings based on any unseen categories
+        encountered.
+    _compute_delta_cat(self, x_imp_cat: list)
+        Compute and return Delta of categorical variables in imputed `x`.
+    _compute_delta_num(self, x_imp_num: list)
+        Compute and return the Delta of numerical variables in imputed `x`.
+    fit(self, x: pd.DataFrame, categorical: Iterable[Any] = None)
+        Checks if the arguments are valid and initializes different class
+        attributes.
+    transform(self, x: pd.DataFrame)
+        Imputes all missing values in `x`.
+    fit_transform(self, x: pd.DataFrame, categorical: Iterable[Any] = None)
+        Calls class methods `fit` and `transform` on `x`.
     """
     def __init__(self, clf: Union[Any, BaseEstimator] = LGBMClassifier(),
                  rgr: Union[Any, BaseEstimator] = LGBMRegressor(),
-                 initial_guess: str = "median", max_iter: int = 5) -> None:
-        # Make sure the classifier is None (no input) or an estimator.
+                 initial_guess: str = "median", max_iter: int = 5,
+                 early_stopping=True) -> None:
+        """
+        Parameters
+        ----------
+        clf : estimator object, default=None.
+            This object is assumed to implement the scikit-learn estimator api.
+        rgr : estimator object, default=None.
+            This object is assumed to implement the scikit-learn estimator api.
+        max_iter : int, default=5
+            Determines the number of iteration.
+        initial_guess : str, default=`median`
+            If `mean`, initial imputation will be the mean of the features.
+            If `median`, initial imputation will be the median of the features.
+        early_stopping : bool
+            Determines if early stopping will be executed.
+
+        Raises
+        ------
+        ValueError
+            - If argument `clf` is not an estimator.
+            - If argument `rgr` is not an estimator.
+            - If argument `initial_guess` is not a str.
+            - If argument `initial_guess` is neither `mean` nor `median`.
+            - If argument `max_iter` is not an int.
+            - If argument `early_stopping` is not a bool.
+        """
         if not _is_estimator(clf):
             raise ValueError("Argument `clf` only accept estimators that has "
                              "class methods `fit` and `predict`.")
 
-        # Make sure the regressor is None (no input) or an estimator.
         if not _is_estimator(rgr):
             raise ValueError("Argument `rgr` only accept estimators that has "
                              "class methods `fit` and `predict`.")
 
-        # Make sure `initial_guess` is str.
         if not isinstance(initial_guess, str):
-            raise ValueError("Argument `initial_guess` only accept str.")
+            raise ValueError("Argument `initial_guess` must be str.")
 
-        # Make sure `initial_guess` is either `median` or `mean`.
         if initial_guess not in ("median", "mean"):
             raise ValueError("Argument `initial_guess` can only be `median` "
                              "or `mean`.")
 
-        # Make sure `max_iter` is int.
         if not isinstance(max_iter, int):
-            raise ValueError("Argument `max_iter` only accept int.")
+            raise ValueError("Argument `max_iter` must be int.")
+
+        if not isinstance(early_stopping, bool):
+            raise ValueError("Argument `early_stopping` must be bool.")
 
         self.classifier = clf
         self.regressor = rgr
         self.initial_guess = initial_guess
         self.max_iter = max_iter
-
-        self.categorical = None
-        self.numerical = None
+        self.early_stopping = early_stopping
+        self.categorical_columns = None
+        self.numerical_columns = None
         self._is_fitted = False
 
     @staticmethod
     def _get_missing_rows(x: pd.DataFrame) -> Dict[Any, pd.Index]:
-        """
-        Gather the indices of any rows that have missing values.
+        """Gather the indices of any rows that have missing values.
 
         Parameters
         ----------
@@ -95,7 +155,7 @@ class MissForest:
         missing_row = {}
         for c in x.columns:
             feature = x[c]
-            is_missing = feature.isnull() > 0
+            is_missing = feature.isnull()
             missing_index = feature[is_missing].index
             if len(missing_index) > 0:
                 missing_row[c] = missing_index
@@ -104,8 +164,7 @@ class MissForest:
 
     @staticmethod
     def _get_obs_rows(x: pd.DataFrame) -> pd.Index:
-        """
-        Gather the rows of any DataFrame that do not contain any missing
+        """Gather the rows of any DataFrame that do not contain any missing
         values.
 
         Parameters
@@ -126,8 +185,8 @@ class MissForest:
     def _get_map_and_rev_map(
             self, x: pd.DataFrame
     ) -> Union[Tuple[Dict[Any, int], Dict[int, Any]], Tuple[Dict, Dict]]:
-        """
-        Gets the encodings and the reverse encodings of categorical variables.
+        """Gets the encodings and the reverse encodings of categorical
+        variables.
 
         Parameters
         ----------
@@ -139,7 +198,6 @@ class MissForest:
         mappings : dict
             Dictionary containing the categorical variables as keys and
             their corresponding encodings as values.
-
         rev_mappings : dict
             Dictionary containing the categorical variables as keys and
             their corresponding reverse encodings as values.
@@ -148,7 +206,7 @@ class MissForest:
         rev_mappings = {}
 
         for c in x.columns:
-            if c in self.categorical:
+            if c in self.categorical_columns:
                 unique = x[c].dropna().unique()
                 n_unique = range(x[c].dropna().nunique())
 
@@ -160,15 +218,13 @@ class MissForest:
     def _compute_initial_imputations(self, x: pd.DataFrame,
                                      categorical: Iterable[Any]
                                      ) -> Dict[Any, Union[str, np.float64]]:
-        """
-        Computes and stores the initial imputation values for each feature
+        """Computes and stores the initial imputation values for each feature
         in `x`.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
             The dataset consisting solely of features that require imputation.
-
         categorical : Iterable[Any]
             An iterable containing identifiers for all categorical features
             present in `x`.
@@ -205,15 +261,13 @@ class MissForest:
     def _initial_impute(x: pd.DataFrame,
                         initial_imputations: Dict[Any, Union[str, np.float64]]
                         ) -> pd.DataFrame:
-        """
-        Imputes the values of features using the mean or median for
+        """Imputes the values of features using the mean or median for
         numerical variables; otherwise, uses the mode for imputation.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
             Dataset (features only) that needs to be imputed.
-
         initial_imputations : dict
             Dictionary containing initial imputation values for each feature.
 
@@ -231,15 +285,13 @@ class MissForest:
     def _add_unseen_categories(
             x, mappings
     ) -> Union[Tuple[Dict[Any, int], Dict[int, Any]], Tuple[Dict, Dict]]:
-        """
-        Updates mappings and reverse mappings based on any unseen categories
-        encountered.
+        """Updates mappings and reverse mappings based on any unseen
+        categories encountered.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
             The dataset consisting solely of features that require imputation.
-
         mappings : dict
             A dictionary mapping categorical variables to their encoded
             representations.
@@ -250,7 +302,6 @@ class MissForest:
             A dictionary mapping categorical variables to their original
             values, effectively serving as the reverse of the `mappings`
             parameter.
-
         updated_mappings : dict
             An updated dictionary reflecting the latest mappings between
             categorical variables and their encoded representations,
@@ -268,70 +319,61 @@ class MissForest:
 
         return mappings, rev_mappings
 
-    def _compute_gamma_cat(self, all_x_imp_cat: list
-                           ) -> Union[np.ndarray, int]:
-        """
-        Compute and return Gamma of categorical variables in imputed `x`.
+    def _compute_delta_cat(self, x_imp_cat: list) -> float:
+        """Compute and return Delta of categorical variables in imputed `x`.
 
         Parameters
         ----------
-        all_x_imp_cat : list
-            All categorical variables in imputed `x`.
+        x_imp_cat : list
+            Imputed `x` (with only categorical variables) of latest 2
+            iterations.
 
         Returns
         -------
-        np.ndarray
-            Gamma of categorical variables in imputed `x`.
-        int
-            Gamma of 0, indicating that there are no differences in
+        float
+            Delta (change in values or distance) of categorical variables in
             imputed `x`.
         """
-        if len(self.categorical) > 0 and len(all_x_imp_cat) >= 2:
-            x_imp_cat = all_x_imp_cat[-1]
-            x_imp_cat_prev = all_x_imp_cat[-2]
-            return (np.sum(np.sum(x_imp_cat != x_imp_cat_prev, axis=0),
-                           axis=0) / len(self.categorical))
-        else:
-            return 0
+        if any(self.categorical_columns) and len(x_imp_cat) >= 2:
+            x_imp_cat_curr = x_imp_cat[-1]
+            x_imp_cat_prev = x_imp_cat[-2]
+            return (np.sum(np.sum(x_imp_cat_curr != x_imp_cat_prev, axis=0),
+                           axis=0) / len(self.categorical_columns))
 
-    def _compute_gamma_num(self, all_x_imp_num: list
-                           ) -> Union[np.ndarray, int]:
-        """
-        Compute and return the Gamma of numerical variables in imputed `x`.
+        return 0.0
+
+    def _compute_delta_num(self, x_imp_num: list) -> float:
+        """Compute and return the Delta of numerical variables in imputed `x`.
 
         Parameters
         ----------
-        all_x_imp_num : list
-            All numerical variables in imputed `x`.
+        x_imp_num : list
+            Imputed `x` (with only numerical variables) of latest 2
+            iterations.
 
         Returns
         -------
-        np.ndarray
-            Gamma of numerical variables in imputed `x`. This array contains
-            the calculated values.
-        int
-            Indicates that there are no differences in imputed `x`, with 0
-            representing this state.
+        float
+            Delta (change in values or distance) of numerical variables in
+            imputed `x`.
         """
-        if len(self.numerical) > 0 and len(all_x_imp_num) >= 2:
-            x_imp_num = all_x_imp_num[-1]
-            x_imp_num_prev = all_x_imp_num[-2]
+        if any(self.numerical_columns) and len(x_imp_num) >= 2:
+            x_imp_num_curr = x_imp_num[-1]
+            x_imp_num_prev = x_imp_num[-2]
             return np.sum(np.sum(
-                (x_imp_num - x_imp_num_prev) ** 2, axis=0
-            ), axis=0) / np.sum(np.sum(x_imp_num ** 2, axis=0), axis=0)
-        else:
-            return 0
+                (x_imp_num_curr - x_imp_num_prev) ** 2, axis=0
+            ), axis=0) / np.sum(np.sum(x_imp_num_curr ** 2, axis=0), axis=0)
+
+        return 0.0
 
     def fit(self, x: pd.DataFrame, categorical: Iterable[Any] = None):
-        """
-        Checks if the arguments are valid and initializes different class
+        """Checks if the arguments are valid and initializes different class
         attributes.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
             Dataset (features only) that needs to be imputed.
-
         categorical : Iterable[Any], default=None
             All categorical features of x.
 
@@ -403,13 +445,12 @@ class MissForest:
         if categorical is None:
             categorical = []
 
-        self.categorical = categorical
-        self.numerical = [c for c in x.columns if c not in categorical]
+        self.categorical_columns = categorical
+        self.numerical_columns = [c for c in x.columns if c not in categorical]
         self._is_fitted = True
 
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
-        """
-        Imputes all missing values in `x`.
+        """Imputes all missing values in `x`.
 
         Parameters
         ----------
@@ -425,7 +466,6 @@ class MissForest:
         ------
         NotFittedError
             If `MissForest` is not fitted.
-
         ValueError
             If there are no missing values in `x`.
         """
@@ -440,18 +480,17 @@ class MissForest:
         missing_rows = self._get_missing_rows(x)
         obs_rows = self._get_obs_rows(x)
         initial_imputations = self._compute_initial_imputations(
-            x, self.categorical)
+            x, self.categorical_columns)
         x_imp = self._initial_impute(x, initial_imputations)
         mappings, rev_mappings = self._get_map_and_rev_map(x)
         mappings, rev_mappings = self._add_unseen_categories(x_imp, mappings)
         x_imp = _label_encoding(x_imp, mappings)
 
-        all_x_imp_cat = []
-        all_x_imp_num = []
-        all_gamma_cat = []
-        all_gamma_num = []
-        n_iter = 0
-        while True:
+        x_imp_cat = []
+        x_imp_num = []
+        delta_cat = []
+        delta_num = []
+        for _ in tqdm(range(self.max_iter)):
             for c in missing_rows:
                 if c in mappings:
                     estimator = deepcopy(self.classifier)
@@ -474,31 +513,45 @@ class MissForest:
                 # Update imputed matrix.
                 x_imp.loc[miss_index, c] = y_pred
 
-                all_x_imp_cat.append(
-                    x_imp[self.categorical].reset_index(drop=True))
-                all_x_imp_num.append(
-                    x_imp[self.numerical].reset_index(drop=True))
+            # Make sure the sizes of `x_imp_cat` and `x_imp_num`
+            # never grow more than 2 elements.
+            if len(x_imp_cat) >= 2:
+                x_imp_cat.pop(0)
 
-            all_gamma_cat.append(self._compute_gamma_cat(all_x_imp_cat))
-            all_gamma_num.append(self._compute_gamma_num(all_x_imp_num))
+            if len(x_imp_num) >= 2:
+                x_imp_num.pop(0)
 
-            n_iter += 1
-            if n_iter > self.max_iter:
-                break
+            # Make sure the sizes of `delta_cat` and `delta_num` never grow
+            # more than 2 elements.
+            if len(delta_cat) >= 2:
+                delta_cat.pop(0)
+
+            if len(delta_num) >= 2:
+                delta_num.pop(0)
+
+            # Store imputed categorical and numerical features after
+            # each iteration.
+            x_imp_cat.append(
+                x_imp[self.categorical_columns].reset_index(drop=True))
+            x_imp_num.append(
+                x_imp[self.numerical_columns].reset_index(drop=True))
+            
+            # Store computed delta (change) of categorical and numerical
+            # features.
+            delta_cat.append(self._compute_delta_cat(x_imp_cat))
+            delta_num.append(self._compute_delta_num(x_imp_num))
 
             if (
-                    n_iter >= 2 and
-                    len(self.categorical) > 0 and
-                    len(all_gamma_cat) >= 2 and
-                    all_gamma_cat[-1] > all_gamma_cat[-2]
+                    any(self.categorical_columns) and
+                    len(delta_cat) >= 2 and
+                    delta_cat[-1] > delta_cat[-2]
             ):
                 break
 
             if (
-                    n_iter >= 2 and
-                    len(self.numerical) > 0 and
-                    len(all_gamma_cat) >= 2 and
-                    all_gamma_num[-1] > all_gamma_num[-2]
+                    any(self.numerical_columns) and
+                    len(delta_num) >= 2 and
+                    delta_num[-1] > delta_num[-2]
             ):
                 break
 
@@ -507,14 +560,12 @@ class MissForest:
 
     def fit_transform(self, x: pd.DataFrame, categorical: Iterable[Any] = None
                       ) -> pd.DataFrame:
-        """
-        Calls class methods `fit` and `transform` on `x`.
+        """Calls class methods `fit` and `transform` on `x`.
 
         Parameters
         ----------
         x : pd.DataFrame of shape (n_samples, n_features)
             Dataset (features only) that needs to be imputed.
-
         categorical : Iterable[Any], default=None
             All categorical features of `x`.
 

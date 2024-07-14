@@ -10,14 +10,12 @@ import pandas as pd
 
 
 def _label_encoding(x: pd.DataFrame, mappings: dict) -> pd.DataFrame:
-    """
-    Performs label encoding on given features and the input mappings.
+    """Performs label encoding on given features and the input mappings.
 
     Parameters
     ----------
     x : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needs to be encoded.
-
     mappings : dict
         Dictionary that contains the categorical variables as keys and their
         corresponding encodings as values.
@@ -34,15 +32,13 @@ def _label_encoding(x: pd.DataFrame, mappings: dict) -> pd.DataFrame:
 
 
 def _rev_label_encoding(x: pd.DataFrame, rev_mappings: dict) -> pd.DataFrame:
-    """
-    Performs reverse label encoding on given features and the input reverse
-    mappings.
+    """Performs reverse label encoding on given features and the input
+    reverse mappings.
 
     Parameters
     ----------
     x : pd.DataFrame of shape (n_samples, n_features)
         Dataset (features only) that needs to be imputed.
-
     rev_mappings : dict
         Dictionary that contains the categorical variables as keys and their
         corresponding encodings as values.

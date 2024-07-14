@@ -11,6 +11,6 @@ class MultipleDataTypesError(Exception):
 
 
 class NotFittedError(Exception):
-    """Exception raised when attempting to call the class method `transform`
-    before the `MissForest` model has been trained."""
+    """Raised when attempting to call the class method `transform` before the
+     `MissForest` model has been trained."""
     pass

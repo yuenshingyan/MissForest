@@ -203,7 +203,7 @@ class UnitTests(unittest.TestCase):
             'B': [None, 'b', 'c'],
             'C': ['a', 'b', 'c']
         })
-        self.missforest.categorical = ("A", "B", "C")
+        self.missforest.categorical_columns = ("A", "B", "C")
         mappings, rev_mappings = self.missforest._get_map_and_rev_map(df)
 
         expected_mappings = {
