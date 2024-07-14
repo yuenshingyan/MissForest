@@ -1,4 +1,4 @@
-"""This module contains class 'TestMissForest'."""
+"""This module contains class `TestMissForest`."""
 
 __author__ = "Yuen Shing Yan Hindy"
 
@@ -15,7 +15,7 @@ class IntegrationTests(unittest.TestCase):
 
     def setUp(self):
         """Special method that is automatically called before each test
-        method is executed. It is used to set up 'MissForest' instance that
+        method is executed. It is used to set up `MissForest` instance that
         is shared across multiple tests."""
 
         self.missforest = MissForest()
@@ -53,8 +53,8 @@ class IntegrationTests(unittest.TestCase):
                 break
 
     def test_integration1(self):
-        """Tests if MissForest can run properly when its 'fit' and 
-        'transform' methods are called."""
+        """Tests if MissForest can run properly when its `fit` and 
+        `transform` methods are called."""
 
         mf = MissForest()
         mf.fit(self.train)
@@ -65,8 +65,8 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
     def test_integration2(self):
-        """Tests if MissForest can run properly when its 'fit' and 
-        'transform' methods are called."""
+        """Tests if MissForest can run properly when its `fit` and 
+        `transform` methods are called."""
 
         mf = MissForest()
         train_imputed = mf.fit_transform(self.train)
@@ -76,8 +76,8 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
     def test_integration3(self):
-        """Tests if MissForest can run properly when its 'fit' and 
-        'transform' methods are called."""
+        """Tests if MissForest can run properly when its `fit` and 
+        `transform` methods are called."""
 
         mf = MissForest()
         mf.fit(self.train)
@@ -88,8 +88,8 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
     def test_integration4(self):
-        """Tests if MissForest can run properly when its 'fit' and 
-        'transform' methods are called."""
+        """Tests if MissForest can run properly when its `fit` and 
+        `transform` methods are called."""
 
         mf = MissForest()
         mf.fit(self.train)

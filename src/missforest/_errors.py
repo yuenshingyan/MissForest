@@ -4,14 +4,13 @@ __all__ = ["MultipleDataTypesError", "NotFittedError"]
 
 
 class MultipleDataTypesError(Exception):
-    """Raised when any of the columns the input argument 'x' has more one
-    datatype when calling function '_validate_single_datatype_features'."""
-
+    """Raised when any column of the input argument `x` has more than one
+    datatype when calling the function `_validate_single_datatype_features`.
+    """
     pass
 
 
 class NotFittedError(Exception):
-    """Raised when class method 'transform' is being called before
-    'MissForest' is trained."""
-
+    """Exception raised when attempting to call the class method `transform`
+    before the `MissForest` model has been trained."""
     pass
