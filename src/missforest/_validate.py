@@ -14,8 +14,7 @@ from ._errors import MultipleDataTypesError
 
 
 def _is_estimator(estimator: Union[Any, BaseEstimator]) -> bool:
-    """
-    Checks if the argument `estimator` is an object that implements the
+    """Checks if the argument `estimator` is an object that implements the
     scikit-learn estimator API.
 
     Parameters
@@ -30,23 +29,17 @@ def _is_estimator(estimator: Union[Any, BaseEstimator]) -> bool:
         methods `fit` and `predict`. Otherwise, returns False.
     """
     try:
-        # Get the class methods `fit` and `predict` of the estimator.
-        is_has_fit_method = getattr(estimator, "fit")
-        is_has_predict_method = getattr(estimator, "predict")
+        # Check if class methods `fit` and `predict` exist and callable.
+        is_has_fit_method = callable(getattr(estimator, "fit"))
+        is_has_predict_method = callable(getattr(estimator, "predict"))
 
-        # Check if those class method are callable.
-        is_has_fit_method = callable(is_has_fit_method)
-        is_has_predict_method = callable(is_has_predict_method)
-
-        # Assumes it is an estimator if it has `fit` and `predict` methods.
         return is_has_fit_method and is_has_predict_method
     except AttributeError:
         return False
 
 
 def _validate_single_datatype_features(x: pd.DataFrame) -> None:
-    """
-    Checks if all values in the features belong to the same datatype.
+    """Checks if all values in the features belong to the same datatype.
 
     Parameters
     ----------
