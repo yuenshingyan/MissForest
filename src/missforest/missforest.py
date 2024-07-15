@@ -73,10 +73,6 @@ class MissForest:
     _add_unseen_categories(x, mappings)
         Updates mappings and reverse mappings based on any unseen categories
         encountered.
-    _compute_delta_cat(self, x_imp_cat: list)
-        Compute and return Delta of categorical variables in imputed `x`.
-    _compute_delta_num(self, x_imp_num: list)
-        Compute and return the Delta of numerical variables in imputed `x`.
     fit(self, x: pd.DataFrame, categorical: Iterable[Any] = None)
         Checks if the arguments are valid and initializes different class
         attributes.
@@ -327,17 +323,17 @@ class MissForest:
 
         return mappings, rev_mappings
 
-    def _is_stopping_criterion_satisfied(self, delta_cat: list[float],
-                                         delta_num: list[float]) -> bool:
+    def _is_stopping_criterion_satisfied(self, pfc_score: list[float],
+                                         nrmse_score: list[float]) -> bool:
         """Checks if stopping criterion satisfied. If satisfied, return True.
         Otherwise, return False.
 
         Parameters
         ----------
-        delta_cat : list[float]
-            List of latest 2 changes of imputed `x`.
-        delta_num : list[float]
-            List of latest 2 changes of imputed `x`.
+        pfc_score : list[float]
+            Latest 2 PFC scores.
+        nrmse_score : list[float]
+            Latest 2 NRMSE scores.
 
         Returns
         -------
@@ -345,37 +341,34 @@ class MissForest:
             True, if stopping criterion satisfied.
             False, if stopping criterion not satisfied.
         """
-        is_cat_diff_larger = False
-        if any(self.categorical_columns) and len(delta_cat) >= 2:
-            is_cat_diff_larger = delta_cat[-1] > delta_cat[-2]
+        is_pfc_increased = False
+        if any(self.categorical_columns) and len(pfc_score) >= 2:
+            is_pfc_increased = pfc_score[-1] > pfc_score[-2]
 
-        is_num_diff_larger = False
-        if any(self.numerical_columns) and len(delta_num) >= 2:
-            is_num_diff_larger = delta_num[-1] > delta_num[-2]
+        is_nrmse_increased = False
+        if any(self.numerical_columns) and len(nrmse_score) >= 2:
+            is_nrmse_increased = nrmse_score[-1] > nrmse_score[-2]
 
         if (
                 any(self.categorical_columns) and
                 any(self.numerical_columns) and
-                is_cat_diff_larger * is_num_diff_larger
+                is_pfc_increased * is_nrmse_increased
         ):
-            warnings.warn("Differences of both imputed categorical and "
-                          "numerical variables become larger.")
+            warnings.warn("Both PFC and NRMSE have increased.")
             return True
         elif (
                 any(self.categorical_columns) and
                 not any(self.numerical_columns) and
-                is_cat_diff_larger
+                is_pfc_increased
         ):
-            warnings.warn("Differences of imputed categorical variables "
-                          "become larger.")
+            warnings.warn("PFC have increased.")
             return True
         elif (
                 not any(self.categorical_columns) and
                 any(self.numerical_columns) and
-                is_num_diff_larger
+                is_nrmse_increased
         ):
-            warnings.warn("Differences of imputed numerical variables "
-                          "become larger.")
+            warnings.warn("NRMSE increased.")
             return True
 
         return False
@@ -557,11 +550,11 @@ class MissForest:
                 x_imp[self.numerical_columns].reset_index(drop=True))
             x_imps.append(x_imp)
 
-            # Store computed delta (change) of categorical and numerical
-            # features.
+            # Compute and store PFC.
             if any(self.categorical_columns) and len(x_imp_cat) >= 2:
                 pfc_score.append(pfc(x_imp_cat[-1], x_imp_cat[-2]))
-
+            
+            # Compute and store NRMSE.
             if any(self.numerical_columns) and len(x_imp_num) >= 2:
                 nrmse_score.append(nrmse(x_imp_num[-1], x_imp_num[-2]))
 
