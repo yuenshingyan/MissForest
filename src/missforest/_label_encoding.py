@@ -1,10 +1,10 @@
 """This module contains label-encoding functions."""
 
-__all__ = [
-    "_label_encoding",
-    "_rev_label_encoding"
-]
+from ._info import VERSION, AUTHOR
 
+__all__ = ["_label_encoding", "_rev_label_encoding"]
+__version__ = VERSION
+__author__ = AUTHOR
 
 import pandas as pd
 

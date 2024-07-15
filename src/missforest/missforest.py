@@ -1,8 +1,10 @@
 """This module contains `MissForest` code."""
 
+from ._info import VERSION, AUTHOR
+
 __all__ = ["MissForest"]
-__version__ = "2.5.5"
-__author__ = "Yuen Shing Yan Hindy"
+__version__ = VERSION
+__author__ = AUTHOR
 
 from copy import deepcopy
 from typing import Union
@@ -19,10 +21,15 @@ from ._label_encoding import (
     _label_encoding,
     _rev_label_encoding
 )
+from ._metrics import pfc, nrmse
 from typing import Any, Tuple, Iterable, Dict
 from sklearn.base import BaseEstimator
 from tqdm import tqdm
 import warnings
+
+
+lgbm_clf = LGBMClassifier(verbosity=-1)
+lgbm_rgr = LGBMRegressor(verbosity=-1)
 
 
 class MissForest:
@@ -78,8 +85,9 @@ class MissForest:
     fit_transform(self, x: pd.DataFrame, categorical: Iterable[Any] = None)
         Calls class methods `fit` and `transform` on `x`.
     """
-    def __init__(self, clf: Union[Any, BaseEstimator] = LGBMClassifier(),
-                 rgr: Union[Any, BaseEstimator] = LGBMRegressor(),
+
+    def __init__(self, clf: Union[Any, BaseEstimator] = lgbm_clf,
+                 rgr: Union[Any, BaseEstimator] = lgbm_rgr,
                  initial_guess: str = "median", max_iter: int = 5,
                  early_stopping=True) -> None:
         """
@@ -277,7 +285,7 @@ class MissForest:
             Imputed dataset (features only).
         """
         for c in x.columns:
-            x[c].fillna(initial_imputations[c], inplace=True)
+            x[c] = x[c].fillna(initial_imputations[c])
 
         return x
 
@@ -319,52 +327,58 @@ class MissForest:
 
         return mappings, rev_mappings
 
-    def _compute_delta_cat(self, x_imp_cat: list) -> float:
-        """Compute and return Delta of categorical variables in imputed `x`.
+    def _is_stopping_criterion_satisfied(self, delta_cat: list[float],
+                                         delta_num: list[float]) -> bool:
+        """Checks if stopping criterion satisfied. If satisfied, return True.
+        Otherwise, return False.
 
         Parameters
         ----------
-        x_imp_cat : list
-            Imputed `x` (with only categorical variables) of latest 2
-            iterations.
+        delta_cat : list[float]
+            List of latest 2 changes of imputed `x`.
+        delta_num : list[float]
+            List of latest 2 changes of imputed `x`.
 
         Returns
         -------
-        float
-            Delta (change in values or distance) of categorical variables in
-            imputed `x`.
+        bool
+            True, if stopping criterion satisfied.
+            False, if stopping criterion not satisfied.
         """
-        if any(self.categorical_columns) and len(x_imp_cat) >= 2:
-            x_imp_cat_curr = x_imp_cat[-1]
-            x_imp_cat_prev = x_imp_cat[-2]
-            return (np.sum(np.sum(x_imp_cat_curr != x_imp_cat_prev, axis=0),
-                           axis=0) / len(self.categorical_columns))
+        is_cat_diff_larger = False
+        if any(self.categorical_columns) and len(delta_cat) >= 2:
+            is_cat_diff_larger = delta_cat[-1] > delta_cat[-2]
 
-        return 0.0
+        is_num_diff_larger = False
+        if any(self.numerical_columns) and len(delta_num) >= 2:
+            is_num_diff_larger = delta_num[-1] > delta_num[-2]
 
-    def _compute_delta_num(self, x_imp_num: list) -> float:
-        """Compute and return the Delta of numerical variables in imputed `x`.
+        if (
+                any(self.categorical_columns) and
+                any(self.numerical_columns) and
+                is_cat_diff_larger * is_num_diff_larger
+        ):
+            warnings.warn("Differences of both imputed categorical and "
+                          "numerical variables become larger.")
+            return True
+        elif (
+                any(self.categorical_columns) and
+                not any(self.numerical_columns) and
+                is_cat_diff_larger
+        ):
+            warnings.warn("Differences of imputed categorical variables "
+                          "become larger.")
+            return True
+        elif (
+                not any(self.categorical_columns) and
+                any(self.numerical_columns) and
+                is_num_diff_larger
+        ):
+            warnings.warn("Differences of imputed numerical variables "
+                          "become larger.")
+            return True
 
-        Parameters
-        ----------
-        x_imp_num : list
-            Imputed `x` (with only numerical variables) of latest 2
-            iterations.
-
-        Returns
-        -------
-        float
-            Delta (change in values or distance) of numerical variables in
-            imputed `x`.
-        """
-        if any(self.numerical_columns) and len(x_imp_num) >= 2:
-            x_imp_num_curr = x_imp_num[-1]
-            x_imp_num_prev = x_imp_num[-2]
-            return np.sum(np.sum(
-                (x_imp_num_curr - x_imp_num_prev) ** 2, axis=0
-            ), axis=0) / np.sum(np.sum(x_imp_num_curr ** 2, axis=0), axis=0)
-
-        return 0.0
+        return False
 
     def fit(self, x: pd.DataFrame, categorical: Iterable[Any] = None):
         """Checks if the arguments are valid and initializes different class
@@ -460,7 +474,9 @@ class MissForest:
         Returns
         -------
         pd.DataFrame
-            Imputed dataset (features only).
+            - Before last imputation matrix, if stopping criterion is
+              triggered.
+            - Last imputation matrix, if all iterations are done.
 
         Raises
         ------
@@ -486,10 +502,11 @@ class MissForest:
         mappings, rev_mappings = self._add_unseen_categories(x_imp, mappings)
         x_imp = _label_encoding(x_imp, mappings)
 
+        x_imps = []
         x_imp_cat = []
         x_imp_num = []
-        delta_cat = []
-        delta_num = []
+        pfc_score = []
+        nrmse_score = []
         for _ in tqdm(range(self.max_iter)):
             for c in missing_rows:
                 if c in mappings:
@@ -513,7 +530,7 @@ class MissForest:
                 # Update imputed matrix.
                 x_imp.loc[miss_index, c] = y_pred
 
-            # Make sure the sizes of `x_imp_cat` and `x_imp_num`
+            # Make sure the sizes of `x_imp_cat`, `x_imp_num` and `x_imps`
             # never grow more than 2 elements.
             if len(x_imp_cat) >= 2:
                 x_imp_cat.pop(0)
@@ -521,13 +538,16 @@ class MissForest:
             if len(x_imp_num) >= 2:
                 x_imp_num.pop(0)
 
-            # Make sure the sizes of `delta_cat` and `delta_num` never grow
-            # more than 2 elements.
-            if len(delta_cat) >= 2:
-                delta_cat.pop(0)
+            if len(x_imps) >= 2:
+                x_imps.pop(0)
 
-            if len(delta_num) >= 2:
-                delta_num.pop(0)
+            # Make sure the sizes of `pfc_score` and `nrmse_score` never grow
+            # more than 2 elements.
+            if len(pfc_score) >= 2:
+                pfc_score.pop(0)
+
+            if len(nrmse_score) >= 2:
+                nrmse_score.pop(0)
 
             # Store imputed categorical and numerical features after
             # each iteration.
@@ -535,28 +555,23 @@ class MissForest:
                 x_imp[self.categorical_columns].reset_index(drop=True))
             x_imp_num.append(
                 x_imp[self.numerical_columns].reset_index(drop=True))
-            
+            x_imps.append(x_imp)
+
             # Store computed delta (change) of categorical and numerical
             # features.
-            delta_cat.append(self._compute_delta_cat(x_imp_cat))
-            delta_num.append(self._compute_delta_num(x_imp_num))
+            if any(self.categorical_columns) and len(x_imp_cat) >= 2:
+                pfc_score.append(pfc(x_imp_cat[-1], x_imp_cat[-2]))
 
-            if (
-                    any(self.categorical_columns) and
-                    len(delta_cat) >= 2 and
-                    delta_cat[-1] > delta_cat[-2]
-            ):
-                break
+            if any(self.numerical_columns) and len(x_imp_num) >= 2:
+                nrmse_score.append(nrmse(x_imp_num[-1], x_imp_num[-2]))
 
-            if (
-                    any(self.numerical_columns) and
-                    len(delta_num) >= 2 and
-                    delta_num[-1] > delta_num[-2]
-            ):
-                break
+            if self._is_stopping_criterion_satisfied(pfc_score, nrmse_score):
+                warnings.warn("Stopping criterion triggered. Before last "
+                              "imputation matrix will be returned.")
+                return _rev_label_encoding(x_imps[-2], rev_mappings)
 
         # Mapping encoded values back to its categories.
-        return _rev_label_encoding(x_imp, rev_mappings)
+        return _rev_label_encoding(x_imps[-1], rev_mappings)
 
     def fit_transform(self, x: pd.DataFrame, categorical: Iterable[Any] = None
                       ) -> pd.DataFrame:
