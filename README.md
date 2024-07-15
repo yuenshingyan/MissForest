@@ -33,20 +33,36 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from missforest.missforest import MissForest
 
+# Load toy dataset.
 df = pd.read_csv("insurance.csv")
-train, test = tran_test_split(df, test_size=.3, shuffle=True, random_state=42)
 
-# default estimators are lgbm classifier and regressor
+# Label encoding.
+df["sex"] = df["sex"].map({"male": 0, "female": 1})
+df["region"] = df["region"].map({
+    "southwest": 0, "southeast": 1, "northwest": 2, "northeast": 3})
+
+# Create missing values.
+for c in df.columns:
+    n = int(len(df) * 0.1)
+    rand_idx = np.random.choice(df.index, n)
+    df.loc[rand_idx, c] = np.nan
+
+# Split dataset into train and test sets.
+train, test = train_test_split(df, test_size=.3, shuffle=True,
+                               random_state=42)
+
+# Default estimators are lgbm classifier and regressor
 mf = MissForest()
 mf.fit(
-    X=train,
+    x=train,
     categorical=["sex", "smoker", "region"]
 )
-train_imputed = mf.transform(X=train)
-test_imputed = mf.transform(X=test)
-print(test_imputed)
+train_imputed = mf.transform(x=train)
+test_imputed = mf.transform(x=test)
+```
 
-# or using the 'fit_transform' method
+Or using the 'fit_transform' method
+```python
 mf = MissForest()
 train_imputed = mf.fit_transform(
     X=train,
