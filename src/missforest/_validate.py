@@ -1,9 +1,10 @@
 """This module contains all validation functions."""
 
-__all__ = [
-    "_is_estimator",
-    "_validate_single_datatype_features",
-]
+from ._info import VERSION, AUTHOR
+
+__all__ = ["_is_estimator", "_validate_single_datatype_features"]
+__version__ = VERSION
+__author__ = AUTHOR
 
 
 from typing import Any, Union

@@ -1,6 +1,10 @@
 """This module contains all custom exceptions or errors."""
 
+from ._info import VERSION, AUTHOR
+
 __all__ = ["MultipleDataTypesError", "NotFittedError"]
+__version__ = VERSION
+__author__ = AUTHOR
 
 
 class MultipleDataTypesError(Exception):
