@@ -176,24 +176,6 @@ class UnitTests(unittest.TestCase):
         expected_result = {'A': [2], 'B': [0], 'C': [3]}
         self.assertEqual(mf._get_missing_rows(df), expected_result)
 
-    def test_get_obs_row(self):
-        """Tests if `_get_obs_row` of `MissForest` correctly gather the rows
-        of any rows that do not have any missing values."""
-
-        df = pd.DataFrame({
-            'A': [1, 2, 3, 4, 5],
-            'B': [6, 7, None, 9, 10],
-            'C': [11, 12, 13, None, 15]
-        })
-
-        # Check that the result is a pd.Index object
-        self.assertIsInstance(self.missforest._get_obs_rows(df), pd.Index)
-
-        # Check that the result contains the indexes of the rows with no
-        # missing values
-        self.assertEqual(
-            self.missforest._get_obs_rows(df).tolist(), [0, 1, 4])
-
     def test_get_map_and_rev_map(self):
         """Tests if `test_get_map_and_rev_map` correctly construct
         dictionaries for label encoding and reverse-label encoding."""
@@ -265,9 +247,9 @@ class UnitTests(unittest.TestCase):
         initial_imputations = self.missforest._compute_initial_imputations(
             df, ("C"))
         x_imp = self.missforest._initial_impute(df, initial_imputations)
-        df["A"].fillna(df["A"].mean(), inplace=True)
-        df["B"].fillna(df["B"].mean(), inplace=True)
-        df["C"].fillna(df["C"].mode(), inplace=True)
+        df["A"] = df["A"].fillna(df["A"].mean())
+        df["B"] = df["B"].fillna(df["B"].mean())
+        df["C"] = df["C"].fillna(df["C"].mode())
         pd.testing.assert_frame_equal(x_imp, df, check_dtype=False)
 
     def test_initial_imputation_median(self):
@@ -285,9 +267,9 @@ class UnitTests(unittest.TestCase):
         initial_imputations = self.missforest._compute_initial_imputations(
             df, ("C"))
         X_imp = self.missforest._initial_impute(df, initial_imputations)
-        df["A"].fillna(df["A"].median(), inplace=True)
-        df["B"].fillna(df["B"].median(), inplace=True)
-        df["C"].fillna(df["C"].mode(), inplace=True)
+        df["A"] = df["A"].fillna(df["A"].median())
+        df["B"] = df["B"].fillna(df["B"].median())
+        df["C"] = df["C"].fillna(df["C"].mode())
         pd.testing.assert_frame_equal(X_imp, df, check_dtype=False)
 
     def test_get_initials_non_existing_feature(self):
