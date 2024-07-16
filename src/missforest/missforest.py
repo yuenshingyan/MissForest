@@ -57,9 +57,6 @@ class MissForest:
     -------
     _get_missing_rows(x: pd.DataFrame)
         Gather the indices of any rows that have missing values.
-    _get_obs_rows(x: pd.DataFrame)
-        Gather the rows of any DataFrame that do not contain any missing
-        values.
     _get_map_and_rev_map(self, x: pd.DataFrame)
         Gets the encodings and the reverse encodings of categorical variables.
     _compute_initial_imputations(self, x: pd.DataFrame,
@@ -165,26 +162,6 @@ class MissForest:
                 missing_row[c] = missing_index
 
         return missing_row
-
-    @staticmethod
-    def _get_obs_rows(x: pd.DataFrame) -> pd.Index:
-        """Gather the rows of any DataFrame that do not contain any missing
-        values.
-
-        Parameters
-        ----------
-        x : pd.DataFrame of shape (n_samples, n_features)
-            Dataset (features only) that needs to be checked for missing
-            values.
-
-        Returns
-        -------
-        pd.Index
-            Indexes of rows that do not contain any missing values.
-        """
-        n_null = x.isnull().sum(axis=1)
-
-        return x[n_null == 0].index
 
     def _get_map_and_rev_map(
             self, x: pd.DataFrame
@@ -487,7 +464,6 @@ class MissForest:
             raise NotFittedError("MissForest is not fitted yet.")
 
         missing_rows = self._get_missing_rows(x)
-        obs_rows = self._get_obs_rows(x)
         initial_imputations = self._compute_initial_imputations(
             x, self.categorical_columns)
         x_imp = self._initial_impute(x, initial_imputations)
@@ -508,8 +484,8 @@ class MissForest:
                     estimator = deepcopy(self.regressor)
 
                 # Fit estimator with imputed x.
-                x_obs = x_imp.drop(c, axis=1).loc[obs_rows]
-                y_obs = x_imp[c].loc[obs_rows]
+                x_obs = x_imp.drop(c, axis=1)
+                y_obs = x_imp[c]
                 estimator.fit(x_obs, y_obs)
 
                 # Predict the missing column with the trained estimator.
