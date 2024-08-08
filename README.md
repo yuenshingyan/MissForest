@@ -75,7 +75,7 @@ print(test_imputed)
 # Imputing with other estimators
 
 ```python
-from missforest.missforest import MissForest
+from missforest import MissForest
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
