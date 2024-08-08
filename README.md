@@ -31,7 +31,7 @@ Imputing a dataset:
 ```python
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from missforest.missforest import MissForest
+from missforest import MissForest
 
 # Load toy dataset.
 df = pd.read_csv("insurance.csv")
