@@ -4,6 +4,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/MissForest?link=https%3A%2F%2Fpypi.org%2Fproject%2FMissForest%2F)
 [![MIT Licence](https://badges.frapsoft.com/os/mit/mit.svg?v=103)](https://opensource.org/licenses/mit-license.php)
 [![PyPI version](https://badge.fury.io/py/MissForest.svg)](https://badge.fury.io/py/MissForest)
+[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
 
 This project is a Python implementation of the MissForest algorithm, a powerful 
 tool designed to handle missing values in tabular datasets. The primary goal of 
