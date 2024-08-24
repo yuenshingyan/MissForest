@@ -1,5 +1,7 @@
 # MissForest
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13368883.svg)](https://doi.org/10.5281/zenodo.13368883)
+
 This project is a Python implementation of the MissForest algorithm, a powerful 
 tool designed to handle missing values in tabular datasets. The primary goal of 
 this project is to provide users with a more accurate method of imputing 
@@ -15,7 +17,7 @@ paramount.
 
 # How MissForest Handles Categorical Variables ?
 
-Categorical variables in argument 'categoricals' will be label encoded for
+Categorical variables in argument `categoricals` will be label encoded for
 estimators to work properly. 
 
 # Example
@@ -61,7 +63,7 @@ train_imputed = mf.transform(x=train)
 test_imputed = mf.transform(x=test)
 ```
 
-Or using the 'fit_transform' method
+Or using the `fit_transform` method
 ```python
 mf = MissForest()
 train_imputed = mf.fit_transform(
