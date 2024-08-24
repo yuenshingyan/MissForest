@@ -1,0 +1,11 @@
+cff-version: 1.0.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Yuen
+    given-names: Shing Yan Hindy
+title: "yuenshingyan/MissForest: MissForest in Python - Arguably the best missing values imputation method"
+version: "v1.0.0"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.13368883
+date-released: 2024-08-24
