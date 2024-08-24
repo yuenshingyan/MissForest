@@ -1,6 +1,8 @@
 # MissForest
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13368883.svg)](https://doi.org/10.5281/zenodo.13368883)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/MissForest?link=https%3A%2F%2Fpypi.org%2Fproject%2FMissForest%2F)
+
 
 This project is a Python implementation of the MissForest algorithm, a powerful 
 tool designed to handle missing values in tabular datasets. The primary goal of 
