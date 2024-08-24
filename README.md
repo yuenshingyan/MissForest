@@ -2,6 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13368883.svg)](https://doi.org/10.5281/zenodo.13368883)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/MissForest?link=https%3A%2F%2Fpypi.org%2Fproject%2FMissForest%2F)
+[![MIT Licence](https://badges.frapsoft.com/os/mit/mit.svg?v=103)](https://opensource.org/licenses/mit-license.php)
 
 
 This project is a Python implementation of the MissForest algorithm, a powerful 
