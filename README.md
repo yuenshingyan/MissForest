@@ -1,5 +1,11 @@
 # MissForest
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13368883.svg)](https://doi.org/10.5281/zenodo.13368883)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/MissForest?link=https%3A%2F%2Fpypi.org%2Fproject%2FMissForest%2F)
+[![MIT Licence](https://badges.frapsoft.com/os/mit/mit.svg?v=103)](https://opensource.org/licenses/mit-license.php)
+[![PyPI version](https://badge.fury.io/py/MissForest.svg)](https://badge.fury.io/py/MissForest)
+[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
+
 This project is a Python implementation of the MissForest algorithm, a powerful 
 tool designed to handle missing values in tabular datasets. The primary goal of 
 this project is to provide users with a more accurate method of imputing 
@@ -15,7 +21,7 @@ paramount.
 
 # How MissForest Handles Categorical Variables ?
 
-Categorical variables in argument 'categoricals' will be label encoded for
+Categorical variables in argument `categoricals` will be label encoded for
 estimators to work properly. 
 
 # Example
@@ -61,7 +67,7 @@ train_imputed = mf.transform(x=train)
 test_imputed = mf.transform(x=test)
 ```
 
-Or using the 'fit_transform' method
+Or using the `fit_transform` method
 ```python
 mf = MissForest()
 train_imputed = mf.fit_transform(
