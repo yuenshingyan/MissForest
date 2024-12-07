@@ -8,18 +8,21 @@ __author__ = AUTHOR
 
 import numpy as np
 import pandas as pd
+from ._validate import _is_numerical_matrix
 
 
-def pfc(x_imp_cat_curr: pd.DataFrame, x_imp_cat_prev: pd.DataFrame) -> float:
+def pfc(x_true: pd.DataFrame, x_imp: pd.DataFrame, n_missing: int) -> float:
     """Compute and return the proportion of falsely classified (PFC) of two
-    different categorical imputation matrices.
+    categorical matrices `x_true` and `x_imp`.
 
     Parameters
     ----------
-    x_imp_cat_curr : pd.DataFrame
-        Latest categorical imputation matrix.
-    x_imp_cat_prev : pd.DataFrame
-        Before last categorical imputation matrix.
+    x_true : pd.DataFrame
+        Complete data matrix.
+    x_imp : pd.DataFrame
+        Imputed data matrix.
+    n_missing : int
+        Total number of missing values in the categorical variables.
 
     Returns
     -------
@@ -27,26 +30,25 @@ def pfc(x_imp_cat_curr: pd.DataFrame, x_imp_cat_prev: pd.DataFrame) -> float:
         Proportion of falsely classified (PFC) of two different categorical
         imputation matrices.
     """
-    if len(x_imp_cat_curr) != len(x_imp_cat_prev):
-        raise ValueError(f"Argument `x_imp_cat_curr` has a length of "
-                         f"{len(x_imp_cat_curr)}, which is not identical to "
-                         f"length of {len(x_imp_cat_prev)}.")
-    return (
-            np.sum(np.sum(x_imp_cat_curr != x_imp_cat_prev, axis=1)) /
-            len(x_imp_cat_curr)
-    )
+    if x_true.shape != x_imp.shape:
+        raise ValueError(
+            f"Argument `x_true` has a shape of {x_true.shape}, "
+            f"which is not identical to shape of `x_imp` {x_imp.shape}."
+        )
+
+    return np.sum(np.sum(x_true != x_imp, axis=1)) / n_missing
 
 
-def nrmse(x_imp_num_curr: pd.DataFrame, x_imp_num_prev: pd.DataFrame) -> float:
+def nrmse(x_true: pd.DataFrame, x_imp: pd.DataFrame) -> float:
     """Compute and return the normalized root mean squared error (NRMSE) two
-    different numerical imputation matrices.
+    different numerical matrices `x_true` and `x_imp`.
 
     Parameters
     ----------
-    x_imp_num_curr : pd.DataFrame
-        Latest numerical imputation matrix.
-    x_imp_num_prev : pd.DataFrame
-        Before last numerical imputation matrix.
+    x_true : pd.DataFrame of shape (n_samples, n_features)
+        Complete data matrix.
+    x_imp : pd.DataFrame of shape (n_samples, n_features)
+        Imputed data matrix.
 
     Returns
     -------
@@ -54,10 +56,17 @@ def nrmse(x_imp_num_curr: pd.DataFrame, x_imp_num_prev: pd.DataFrame) -> float:
         Normalized root mean squared error (NRMSE) two different numerical
         imputation matrices.
     """
-    if len(x_imp_num_curr) != len(x_imp_num_prev):
-        raise ValueError(f"Argument `x_imp_cat_curr` has a length of "
-                         f"{len(x_imp_num_curr)}, which is not identical to "
-                         f"length of {len(x_imp_num_prev)}.")
+    if x_true.shape != x_imp.shape:
+        raise ValueError(
+            f"Argument `x_true` has a shape of {x_true.shape}, "
+            f"which is not identical to the shape of `x_imp` {x_imp.shape}.")
+
+    if not _is_numerical_matrix(x_true):
+        raise ValueError("Argument `x_true` must be fully numerical.")
+
+    if not _is_numerical_matrix(x_imp):
+        raise ValueError("Argument `x_imp` must be fully numerical.")
+
     return np.sum(np.sum(
-        (x_imp_num_curr - x_imp_num_prev) ** 2, axis=0
-    ), axis=0) / np.sum(np.sum(x_imp_num_curr ** 2, axis=0), axis=0)
+        (x_true - x_imp) ** 2, axis=0
+    ), axis=0) / np.sum(np.sum(x_true ** 2, axis=0), axis=0)
