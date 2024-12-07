@@ -98,7 +98,7 @@ def _validate_feature_dtype_consistency(x: pd.DataFrame) -> None:
     Raises
     ------
     MultipleDataTypesError
-        Raised if not all values in the features belong to the same datatype.
+        - If not all datatypes are homogeneous, for each feature.
     """
     vectorized_type = np.vectorize(type)
     for c in x.columns:
