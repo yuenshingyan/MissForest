@@ -72,15 +72,17 @@ def _is_estimator(estimator: Union[Any, BaseEstimator]) -> bool:
     Returns
     -------
     bool
-        Returns True if the argument `estimator` is None or has class
-        methods `fit` and `predict`. Otherwise, returns False.
+        - True, if argument `estimator` has class methods `fit` and `predict`.
+        - False, if argument `estimator` does not have class methods `fit`
+        and `predict`.
+        - False, if AttributeError raised.
     """
     try:
         # Check if class methods `fit` and `predict` exist and callable.
-        is_has_fit_method = callable(getattr(estimator, "fit"))
-        is_has_predict_method = callable(getattr(estimator, "predict"))
-
-        return is_has_fit_method and is_has_predict_method
+        return (
+                callable(getattr(estimator, "fit")) and
+                callable(getattr(estimator, "predict"))
+        )
     except AttributeError:
         return False
 
