@@ -4,8 +4,9 @@ from ._info import VERSION, AUTHOR
 
 __all__ = [
     "_is_estimator",
-    "_validate_feature_consistency",
+    "_validate_feature_dtype_consistency",
     "_is_numerical_matrix",
+    "_is_array_2d",
 ]
 __version__ = VERSION
 __author__ = AUTHOR
@@ -18,8 +19,28 @@ import numpy as np
 from ._errors import MultipleDataTypesError
 
 
+def _is_array_2d(array: Any) -> bool:
+    """Checks if argument `array` is 2D.
+
+    Parameters
+    ----------
+    array : Any
+        Array to be checked.
+
+    Returns
+    -------
+    bool
+        - True, if argument `array` is 2D.
+        - False, if argument `array` is not 2D.
+    """
+    if len(array.shape) != 2:
+        return False
+
+    return True
+
+
 def _is_numerical_matrix(mat: Any) -> bool:
-    """Checks if `mat` is fully numerical.
+    """Checks if argument `mat` is fully numerical.
 
     Parameters
     ----------
@@ -64,7 +85,7 @@ def _is_estimator(estimator: Union[Any, BaseEstimator]) -> bool:
         return False
 
 
-def _validate_feature_consistency(x: pd.DataFrame) -> None:
+def _validate_feature_dtype_consistency(x: pd.DataFrame) -> None:
     """Checks if all values in the features belong to the same datatype.
 
     Parameters

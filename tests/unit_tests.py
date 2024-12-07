@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from src.missforest.missforest import MissForest
 from src.missforest._label_encoding import _label_encoding, _rev_label_encoding
 from src.missforest._validate import (
-    _validate_feature_consistency,
+    _validate_feature_dtype_consistency,
     _is_estimator,
     _is_numerical_matrix,
 )
@@ -369,7 +369,7 @@ class UnitTests(unittest.TestCase):
         df = pd.DataFrame(
             data={'mixed_column': ['123', 456, True, 'hello', None]})
         with self.assertRaises(MultipleDataTypesError):
-            _validate_feature_consistency(df)
+            _validate_feature_dtype_consistency(df)
 
     def test_is_numerical_matrix_true(self):
         """Tests if `_is_numerical_matrix` of `MissForest` will return True
