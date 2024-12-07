@@ -10,8 +10,9 @@ from sklearn.model_selection import train_test_split
 from src.missforest.missforest import MissForest
 from src.missforest._label_encoding import _label_encoding, _rev_label_encoding
 from src.missforest._validate import (
-    _validate_single_datatype_features,
-    _is_estimator
+    _validate_feature_consistency,
+    _is_estimator,
+    _is_numerical_matrix,
 )
 from src.missforest._errors import MultipleDataTypesError
 
@@ -363,9 +364,22 @@ class UnitTests(unittest.TestCase):
         pd.testing.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_validate_single_datatype_features(self):
-        """Tests if '_validate_single_datatype_features' of `MissForest` 
+        """Tests if '_validate_single_datatype_features' of `MissForest`
         will raise `MultipleDataTypesError` properly."""
         df = pd.DataFrame(
             data={'mixed_column': ['123', 456, True, 'hello', None]})
         with self.assertRaises(MultipleDataTypesError):
-            _validate_single_datatype_features(df)
+            _validate_feature_consistency(df)
+
+    def test_is_numerical_matrix_true(self):
+        """Tests if `_is_numerical_matrix` of `MissForest` will return True
+        if a numerical matrix is passed."""
+        rand_size = np.random.randint(low=1, high=10, size=2)
+        rand_mat = np.random.random(size=rand_size)
+        self.assertTrue(_is_numerical_matrix(rand_mat))
+
+    def test_is_numerical_matrix_false(self):
+        """Tests if `_is_numerical_matrix` of `MissForest` will return False
+        if a non-fully numerical matrix is passed."""
+        rand_mat = np.array([["a", 2], [3, 4]])
+        self.assertFalse(_is_numerical_matrix(rand_mat))
