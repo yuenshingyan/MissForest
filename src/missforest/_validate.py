@@ -2,7 +2,11 @@
 
 from ._info import VERSION, AUTHOR
 
-__all__ = ["_is_estimator", "_validate_single_datatype_features"]
+__all__ = [
+    "_is_estimator",
+    "_validate_feature_consistency",
+    "_is_numerical_matrix",
+]
 __version__ = VERSION
 __author__ = AUTHOR
 
@@ -12,6 +16,23 @@ from sklearn.base import BaseEstimator
 import pandas as pd
 import numpy as np
 from ._errors import MultipleDataTypesError
+
+
+def _is_numerical_matrix(mat: Any) -> bool:
+    """Checks if `mat` is fully numerical.
+
+    Parameters
+    ----------
+    mat : Any
+        Matrix to be validated.
+
+    Returns
+    -------
+    bool
+        - True, if `mat` is fully numerical.
+        - False, if `mat` is not fully numerical.
+    """
+    return pd.to_numeric(mat, errors='coerce').notna().all().all()
 
 
 def _is_estimator(estimator: Union[Any, BaseEstimator]) -> bool:
@@ -39,7 +60,7 @@ def _is_estimator(estimator: Union[Any, BaseEstimator]) -> bool:
         return False
 
 
-def _validate_single_datatype_features(x: pd.DataFrame) -> None:
+def _validate_feature_consistency(x: pd.DataFrame) -> None:
     """Checks if all values in the features belong to the same datatype.
 
     Parameters
