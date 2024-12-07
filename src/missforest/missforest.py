@@ -15,7 +15,7 @@ from lightgbm import LGBMRegressor
 from ._errors import NotFittedError
 from ._validate import (
     _is_estimator,
-    _validate_single_datatype_features,
+    _validate_feature_consistency,
 )
 from ._label_encoding import (
     _label_encoding,
@@ -137,6 +137,22 @@ class MissForest:
         self.categorical_columns = None
         self.numerical_columns = None
         self._is_fitted = False
+
+    @staticmethod
+    def _get_n_missing(x: pd.DataFrame) -> int:
+        """Compute and return the total number of missing values in `x`.
+
+        Parameters
+        ----------
+        x : pd.DataFrame of shape (n_samples, n_features)
+            Dataset (features only) that needs to be imputed.
+
+        Returns
+        -------
+        int
+            Total number of missing values in `x`.
+        """
+        return x.isnull().sum().sum()
 
     @staticmethod
     def _get_missing_rows(x: pd.DataFrame) -> Dict[Any, pd.Index]:
@@ -424,7 +440,7 @@ class MissForest:
             raise ValueError("One or more columns have all missing values in "
                              "argument `x`.")
 
-        _validate_single_datatype_features(x)
+        _validate_feature_consistency(x)
 
         if categorical is None:
             categorical = []
@@ -463,6 +479,7 @@ class MissForest:
         if not self._is_fitted:
             raise NotFittedError("MissForest is not fitted yet.")
 
+        n_missing = self._get_n_missing(x)
         missing_rows = self._get_missing_rows(x)
         initial_imputations = self._compute_initial_imputations(
             x, self.categorical_columns)
@@ -528,11 +545,22 @@ class MissForest:
 
             # Compute and store PFC.
             if any(self.categorical_columns) and len(x_imp_cat) >= 2:
-                pfc_score.append(pfc(x_imp_cat[-1], x_imp_cat[-2]))
+                pfc_score.append(
+                    pfc(
+                        x_true=x_imp_cat[-1],
+                        x_imp=x_imp_cat[-2],
+                        n_missing=n_missing,
+                    )
+                )
             
             # Compute and store NRMSE.
             if any(self.numerical_columns) and len(x_imp_num) >= 2:
-                nrmse_score.append(nrmse(x_imp_num[-1], x_imp_num[-2]))
+                nrmse_score.append(
+                    nrmse(
+                        x_true=x_imp_num[-1],
+                        x_imp=x_imp_num[-2],
+                    )
+                )
 
             if self._is_stopping_criterion_satisfied(pfc_score, nrmse_score):
                 warnings.warn("Stopping criterion triggered. Before last "
