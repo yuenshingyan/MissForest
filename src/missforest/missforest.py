@@ -227,14 +227,13 @@ class MissForest:
         for c in x.columns:
             if c in categorical:
                 initial_imputations[c] = x[c].mode().values[0]
-            else:
-                if self.initial_guess == "mean":
-                    initial_imputations[c] = x[c].mean()
-                elif self.initial_guess == "median":
-                    initial_imputations[c] = x[c].median()
-                else:
-                    raise ValueError("Argument `initial_guess` only accepts "
-                                     "`mean` or `median`.")
+            elif c not in categorical and self.initial_guess == "mean":
+                initial_imputations[c] = x[c].mean()
+            elif c not in categorical and self.initial_guess == "median":
+                initial_imputations[c] = x[c].median()
+            elif c not in categorical:
+                raise ValueError("Argument `initial_guess` only accepts "
+                                 "`mean` or `median`.")
 
         return initial_imputations
 
@@ -421,8 +420,9 @@ class MissForest:
             raise ValueError("+/- inf values are not supported.")
 
         # Make sure there is no column with all missing values.
-        if np.any(x.isnull().sum() == len(x)):
-            raise ValueError("One or more columns have all rows missing.")
+        if x.isnull().all().any():
+            raise ValueError("One or more columns have all missing values in "
+                             "argument `x`.")
 
         _validate_single_datatype_features(x)
 
