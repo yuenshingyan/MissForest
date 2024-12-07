@@ -32,7 +32,11 @@ def _is_numerical_matrix(mat: Any) -> bool:
         - True, if `mat` is fully numerical.
         - False, if `mat` is not fully numerical.
     """
-    return pd.to_numeric(mat, errors='coerce').notna().all().all()
+    try:
+        mat.astype(float)
+        return True
+    except ValueError:
+        return False
 
 
 def _is_estimator(estimator: Union[Any, BaseEstimator]) -> bool:
