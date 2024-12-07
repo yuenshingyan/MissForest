@@ -105,4 +105,4 @@ def _validate_feature_dtype_consistency(x: pd.DataFrame) -> None:
         all_type = vectorized_type(x[c].dropna())
         if len(pd.unique(all_type)) > 1:
             raise MultipleDataTypesError(
-                f"Multiple data types found in feature {c}.")
+                f"Multiple data types found in feature `{c}`.")
