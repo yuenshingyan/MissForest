@@ -15,7 +15,8 @@ from lightgbm import LGBMRegressor
 from ._errors import NotFittedError
 from ._validate import (
     _is_estimator,
-    _validate_feature_consistency,
+    _validate_feature_dtype_consistency,
+    _is_array_2d,
 )
 from ._label_encoding import (
     _label_encoding,
@@ -407,6 +408,10 @@ class MissForest:
             raise ValueError("Argument `x` can only be pandas dataframe, "
                              "numpy array or list of list.")
 
+        # Make sure `x` is 2D.
+        if not _is_array_2d(x):
+            raise ValueError("Argument `x` must be 2D array.")
+
         # If `x` is a list of list, convert `x` into a pandas dataframe.
         if (
                 isinstance(x, np.ndarray) or
@@ -440,7 +445,7 @@ class MissForest:
             raise ValueError(
                 "One or more columns have all missing values in argument `x`.")
 
-        _validate_feature_consistency(x)
+        _validate_feature_dtype_consistency(x)
 
         if categorical is None:
             categorical = []
