@@ -120,8 +120,8 @@ class MissForest:
             raise ValueError("Argument `initial_guess` must be str.")
 
         if initial_guess not in ("median", "mean"):
-            raise ValueError("Argument `initial_guess` can only be `median` "
-                             "or `mean`.")
+            raise ValueError(
+                "Argument `initial_guess` can only be `median` or `mean`.")
 
         if not isinstance(max_iter, int):
             raise ValueError("Argument `max_iter` must be int.")
@@ -420,13 +420,13 @@ class MissForest:
                 not isinstance(categorical, list) and
                 not all(isinstance(elem, str) for elem in categorical)
         ):
-            raise ValueError("Argument `categorical` can only be list of "
-                             "str or NoneType.")
+            raise ValueError(
+                "Argument `categorical` can only be list of str or NoneType.")
 
         # Make sure `categorical` has at least one variable in it.
         if categorical is not None and len(categorical) < 1:
-            raise ValueError(f"Argument `categorical` has a len of "
-                             f"{len(categorical)}.")
+            raise ValueError(
+                f"Argument `categorical` has a len of {len(categorical)}.")
 
         # Check for positive or negative inf.
         if (
@@ -437,8 +437,8 @@ class MissForest:
 
         # Make sure there is no column with all missing values.
         if x.isnull().all().any():
-            raise ValueError("One or more columns have all missing values in "
-                             "argument `x`.")
+            raise ValueError(
+                "One or more columns have all missing values in argument `x`.")
 
         _validate_feature_consistency(x)
 
@@ -473,8 +473,8 @@ class MissForest:
         """
         x = x.copy()
         if x.isnull().sum().sum() == 0:
-            raise ValueError("Argument `x` must contains at least one "
-                             "missing value.")
+            raise ValueError(
+                "Argument `x` must contains at least one missing value.")
 
         if not self._is_fitted:
             raise NotFittedError("MissForest is not fitted yet.")
