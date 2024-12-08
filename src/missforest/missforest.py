@@ -65,6 +65,8 @@ class MissForest:
 
     Methods
     -------
+    _get_n_missing(x: pd.DataFrame)
+        Compute and return the total number of missing values in `x`.
     _get_missing_rows(x: pd.DataFrame)
         Gather the indices of any rows that have missing values.
     _get_map_and_rev_map(self, x: pd.DataFrame)
