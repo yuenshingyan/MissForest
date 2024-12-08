@@ -31,7 +31,7 @@ from ._label_encoding import (
     _label_encoding,
     _rev_label_encoding
 )
-from ._metrics import pfc, nrmse
+from .metrics import pfc, nrmse
 from typing import Any, Tuple, Iterable, Dict
 from sklearn.base import BaseEstimator
 from tqdm import tqdm
