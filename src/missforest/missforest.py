@@ -12,11 +12,20 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 from lightgbm import LGBMRegressor
-from ._errors import NotFittedError
+from .errors import NotFittedError
 from ._validate import (
-    _is_estimator,
+    _validate_clf,
+    _validate_rgr,
+    _validate_initial_guess,
+    _validate_max_iter,
+    _validate_early_stopping,
     _validate_feature_dtype_consistency,
-    _is_array_2d,
+    _validate_2d,
+    _validate_cat_var_consistency,
+    _validate_categorical,
+    _validate_infinite,
+    _validate_empty_feature,
+    _validate_imputable,
 )
 from ._label_encoding import (
     _label_encoding,
@@ -109,26 +118,11 @@ class MissForest:
             - If argument `max_iter` is not an int.
             - If argument `early_stopping` is not a bool.
         """
-        if not _is_estimator(clf):
-            raise ValueError("Argument `clf` only accept estimators that has "
-                             "class methods `fit` and `predict`.")
-
-        if not _is_estimator(rgr):
-            raise ValueError("Argument `rgr` only accept estimators that has "
-                             "class methods `fit` and `predict`.")
-
-        if not isinstance(initial_guess, str):
-            raise ValueError("Argument `initial_guess` must be str.")
-
-        if initial_guess not in ("median", "mean"):
-            raise ValueError(
-                "Argument `initial_guess` can only be `median` or `mean`.")
-
-        if not isinstance(max_iter, int):
-            raise ValueError("Argument `max_iter` must be int.")
-
-        if not isinstance(early_stopping, bool):
-            raise ValueError("Argument `early_stopping` must be bool.")
+        _validate_clf(clf)
+        _validate_rgr(rgr)
+        _validate_initial_guess(initial_guess)
+        _validate_max_iter(max_iter)
+        _validate_early_stopping(early_stopping)
 
         self.classifier = clf
         self.regressor = rgr
@@ -230,16 +224,11 @@ class MissForest:
         Raises
         ------
         ValueError
-            - Raised if any feature specified in the `categorical` argument
-            does not exist within the columns of `x`.
-            - Raised if the `initial_guess` argument is provided and its
-            value is neither 'mean' nor 'median'.
+            - If any feature specified in the `categorical` argument does not
+            exist within the columns of `x`.
+            - If argument `initial_guess` is provided and its value is
+            neither `mean` nor `median`.
         """
-        intersection = set(categorical).intersection(set(x.columns))
-        if not intersection == set(categorical):
-            raise ValueError("Not all features in argument `categorical` "
-                             "existed in `x` columns.")
-
         initial_imputations = {}
         for c in x.columns:
             if c in categorical:
@@ -331,8 +320,8 @@ class MissForest:
         Returns
         -------
         bool
-            True, if stopping criterion satisfied.
-            False, if stopping criterion not satisfied.
+            - True, if stopping criterion satisfied.
+            - False, if stopping criterion not satisfied.
         """
         is_pfc_increased = False
         if any(self.categorical_columns) and len(pfc_score) >= 2:
@@ -348,6 +337,7 @@ class MissForest:
                 is_pfc_increased * is_nrmse_increased
         ):
             warnings.warn("Both PFC and NRMSE have increased.")
+
             return True
         elif (
                 any(self.categorical_columns) and
@@ -355,6 +345,7 @@ class MissForest:
                 is_pfc_increased
         ):
             warnings.warn("PFC have increased.")
+
             return True
         elif (
                 not any(self.categorical_columns) and
@@ -362,6 +353,7 @@ class MissForest:
                 is_nrmse_increased
         ):
             warnings.warn("NRMSE increased.")
+
             return True
 
         return False
@@ -399,18 +391,10 @@ class MissForest:
         # lists.
         if (
                 not isinstance(x, pd.DataFrame) and
-                not isinstance(x, np.ndarray) and
-                not (
-                        isinstance(x, list) and
-                        all(isinstance(i, list) for i in x)
-                )
+                not isinstance(x, np.ndarray)
         ):
             raise ValueError("Argument `x` can only be pandas dataframe, "
                              "numpy array or list of list.")
-
-        # Make sure `x` is 2D.
-        if not _is_array_2d(x):
-            raise ValueError("Argument `x` must be 2D array.")
 
         # If `x` is a list of list, convert `x` into a pandas dataframe.
         if (
@@ -419,36 +403,19 @@ class MissForest:
         ):
             x = pd.DataFrame(x)
 
-        # Make sure `categorical` is a list of str.
-        if (
-                categorical is not None and
-                not isinstance(categorical, list) and
-                not all(isinstance(elem, str) for elem in categorical)
-        ):
-            raise ValueError(
-                "Argument `categorical` can only be list of str or NoneType.")
-
-        # Make sure `categorical` has at least one variable in it.
-        if categorical is not None and len(categorical) < 1:
-            raise ValueError(
-                f"Argument `categorical` has a len of {len(categorical)}.")
-
-        # Check for positive or negative inf.
-        if (
-                categorical is not None and
-                np.any(np.isinf(x.drop(categorical, axis=1)))
-        ):
-            raise ValueError("+/- inf values are not supported.")
-
-        # Make sure there is no column with all missing values.
-        if x.isnull().all().any():
-            raise ValueError(
-                "One or more columns have all missing values in argument `x`.")
-
+        # Make sure `x` is 2D.
+        _validate_2d(x)
+        _validate_categorical(categorical)
+        _validate_empty_feature(x)
         _validate_feature_dtype_consistency(x)
 
         if categorical is None:
             categorical = []
+
+        if any(categorical):
+            _validate_infinite(x.drop(categorical, axis=1))
+        else:
+            _validate_infinite(x)
 
         self.categorical_columns = categorical
         self.numerical_columns = [c for c in x.columns if c not in categorical]
@@ -464,7 +431,7 @@ class MissForest:
 
         Returns
         -------
-        pd.DataFrame
+        pd.DataFrame of shape (n_samples, n_features)
             - Before last imputation matrix, if stopping criterion is
               triggered.
             - Last imputation matrix, if all iterations are done.
@@ -477,9 +444,8 @@ class MissForest:
             If there are no missing values in `x`.
         """
         x = x.copy()
-        if x.isnull().sum().sum() == 0:
-            raise ValueError(
-                "Argument `x` must contains at least one missing value.")
+        _validate_imputable(x)
+        _validate_cat_var_consistency(x.columns, self.categorical_columns)
 
         if not self._is_fitted:
             raise NotFittedError("MissForest is not fitted yet.")
@@ -570,6 +536,7 @@ class MissForest:
             if self._is_stopping_criterion_satisfied(pfc_score, nrmse_score):
                 warnings.warn("Stopping criterion triggered. Before last "
                               "imputation matrix will be returned.")
+
                 return _rev_label_encoding(x_imps[-2], rev_mappings)
 
         # Mapping encoded values back to its categories.
