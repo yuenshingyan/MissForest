@@ -177,7 +177,7 @@ def _is_numerical_matrix(mat: Any) -> bool:
         return False
 
 
-def _validate_max_iter(max_iter: Any):
+def _validate_max_iter(max_iter: int):
     """Checks if argument `max_iter` is int, and if `max_iter` is less than
     or equals to 1.
 
@@ -199,7 +199,7 @@ def _validate_max_iter(max_iter: Any):
         raise ValueError("Argument `max_iter` must be greater than 1.")
 
 
-def _validate_early_stopping(early_stopping: Any):
+def _validate_early_stopping(early_stopping: bool):
     """Checks if argument `early_stopping` is bool.
 
     Parameters
@@ -216,13 +216,13 @@ def _validate_early_stopping(early_stopping: Any):
         raise ValueError("Argument `early_stopping` must be bool.")
 
 
-def _validate_initial_guess(initial_guess: Any):
+def _validate_initial_guess(initial_guess: str):
     """Checks if `initial_guess` is str, and it `initial_guess` are either
     `median` or `mean`.
 
     Parameters
     ----------
-    initial_guess : Any
+    initial_guess : str
         Initial guess.
 
     Raises
