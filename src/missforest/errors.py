@@ -2,12 +2,12 @@
 
 from ._info import VERSION, AUTHOR
 
-__all__ = ["MultipleDataTypesError", "NotFittedError"]
+__all__ = ["FeaturesDataTypeInconsistentError", "NotFittedError"]
 __version__ = VERSION
 __author__ = AUTHOR
 
 
-class MultipleDataTypesError(Exception):
+class FeaturesDataTypeInconsistentError(Exception):
     """Raised when any column of the input argument `x` has more than one
     datatype when calling the function `_validate_single_datatype_features`.
     """
