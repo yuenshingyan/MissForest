@@ -9,7 +9,7 @@ __author__ = AUTHOR
 
 class FeaturesDataTypeInconsistentError(Exception):
     """Raised when any column of the input argument `x` has more than one
-    datatype when calling the function `_validate_single_datatype_features`.
+    datatype when calling the function `_validate_feature_dtype_consistency`.
     """
     pass
 
