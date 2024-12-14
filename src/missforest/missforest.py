@@ -315,6 +315,10 @@ class MissForest:
             - If there are inf values present in argument `x`.
             - If there are one or more columns with all rows missing.
         """
+        warnings.warn("Label encoding is no longer performed by default. "
+                      "Users will have to perform categorical features "
+                      "encoding by themselves.")
+
         x = x.copy()
 
         # Make sure `x` is either pandas dataframe, numpy array or list of
@@ -455,6 +459,10 @@ class MissForest:
         ValueError
             If there are no missing values in `x`.
         """
+        warnings.warn("Label encoding is no longer performed by default. "
+                      "Users will have to perform categorical features "
+                      "encoding by themselves.")
+
         warnings.warn(f"In version {VERSION}, estimator fitting process is "
                       f"moved to `fit` method. `MissForest` will now imputes "
                       f"unseen missing values with fitted estimators with "
