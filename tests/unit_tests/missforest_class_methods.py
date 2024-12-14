@@ -7,10 +7,6 @@ import numpy as np
 from scipy.stats import norm, binom
 from sklearn.model_selection import train_test_split
 from src.missforest.missforest import MissForest
-from src.missforest._label_encoding import (
-    _label_encoding,
-    _rev_label_encoding,
-)
 
 
 class MissForestClassMethods(unittest.TestCase):
@@ -63,32 +59,7 @@ class MissForestClassMethods(unittest.TestCase):
 
         mf = MissForest()
         expected_result = {'A': [2], 'B': [0], 'C': [3]}
-        self.assertEqual(mf._get_missing_rows(df), expected_result)
-
-    def test_get_map_and_rev_map(self):
-        """Tests if `test_get_map_and_rev_map` correctly construct
-        dictionaries for label encoding and reverse-label encoding."""
-        df = pd.DataFrame({
-            'A': ['a', 'b', None],
-            'B': [None, 'b', 'c'],
-            'C': ['a', 'b', 'c']
-        })
-        self.missforest.categorical_columns = ("A", "B", "C")
-        mappings, rev_mappings = self.missforest._get_map_and_rev_map(df)
-
-        expected_mappings = {
-            'A': {'a': 0, 'b': 1},
-            'B': {'b': 0, 'c': 1},
-            'C': {'a': 0, 'b': 1, 'c': 2}
-        }
-        expected_rev_mappings = {
-            'A': {0: 'a', 1: 'b'},
-            'B': {0: 'b', 1: 'c'},
-            'C': {0: 'a', 1: 'b', 2: 'c'}
-        }
-
-        self.assertEqual(mappings, expected_mappings)
-        self.assertEqual(rev_mappings, expected_rev_mappings)
+        self.assertEqual(mf._get_missing_indices(df), expected_result)
 
     def test_get_initials_mean(self):
         """Tests if the initial imputations values are calculated and stored,
@@ -182,62 +153,3 @@ class MissForestClassMethods(unittest.TestCase):
         self.missforest.initial_guess = "mode"
         with self.assertRaises(ValueError):
             self.missforest._compute_initial_imputations(df, ("C"))
-
-    @staticmethod
-    def test_label_encoding():
-        """Tests if `_label_encoding` of `MissForest` correctly label encode
-        the values in the pandas dataframe."""
-        df = pd.DataFrame({
-            'col1': ['A', 'B', 'A', 'A', 'B'],
-            'col2': [1, 2, 3, 1, 2],
-            'col3': ['X', 'Y', 'X', 'X', 'Y']
-        })
-
-        # Create a dictionary with mappings for label encoding
-        mappings = {
-            'col1': {'A': 0, 'B': 1},
-            'col3': {'X': 0, 'Y': 1}
-        }
-
-        # Call the _label_encoding method
-        result = _label_encoding(df, mappings)
-
-        # Create the expected output
-        expected = pd.DataFrame({
-            'col1': [0, 1, 0, 0, 1],
-            'col2': [1, 2, 3, 1, 2],
-            'col3': [0, 1, 0, 0, 1]
-        })
-
-        # Assert that the result is equal to the expected output
-        pd.testing.assert_frame_equal(result, expected, check_dtype=False)
-
-    @staticmethod
-    def test_rev_label_encoding():
-        """Tests if `_rev_label_encoding` of `MissForest` correctly reverse
-        label encode the values in the pandas dataframe."""
-        # Create a DataFrame with missing values
-        df = pd.DataFrame({
-            'col1': [0, 1, 0, 0, 1],
-            'col2': [1, 2, 3, 1, 2],
-            'col3': [0, 1, 0, 0, 1]
-        })
-
-        # Create a dictionary with mappings for label encoding
-        mappings = {
-            'col1': {0: "A", 1: "B"},
-            'col3': {0: "X", 1: "Y"}
-        }
-
-        # Call the _label_encoding method
-        result = _rev_label_encoding(df, mappings)
-
-        # Create the expected output
-        expected = pd.DataFrame({
-            'col1': ['A', 'B', 'A', 'A', 'B'],
-            'col2': [1, 2, 3, 1, 2],
-            'col3': ['X', 'Y', 'X', 'X', 'Y']
-        })
-
-        # Assert that the result is equal to the expected output
-        pd.testing.assert_frame_equal(result, expected, check_dtype=False)
