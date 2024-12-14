@@ -422,9 +422,10 @@ class MissForest:
                         nrmse_score
                     )):
                 self._is_fitted = True
-                warnings.warn("Stopping criterion triggered during fitting. "
-                              "Before last imputation matrix will be returned."
-                              )
+                warnings.warn(
+                    "Stopping criterion triggered during fitting. "
+                    "Before last imputation matrix will be returned."
+                )
 
                 return self
 
@@ -510,9 +511,10 @@ class MissForest:
                         pfc_score,
                         nrmse_score
                     )):
-                warnings.warn("Stopping criterion triggered during transform. "
-                              "Before last imputation matrix will be returned."
-                              )
+                warnings.warn(
+                    "Stopping criterion triggered during transform. "
+                    "Before last imputation matrix will be returned."
+                )
                 return x_imps[-2]
 
         return x_imps[-1]
