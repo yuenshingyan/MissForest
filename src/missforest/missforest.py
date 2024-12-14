@@ -455,6 +455,12 @@ class MissForest:
         ValueError
             If there are no missing values in `x`.
         """
+        warnings.warn(f"In version {VERSION}, estimator fitting process is "
+                      f"moved to `fit` method. `MissForest` will now imputes "
+                      f"unseen missing values with fitted estimators with "
+                      f"`transform` method. To retain the old behaviour, use "
+                      f"`fit_transform` instead.")
+
         if not self._is_fitted:
             raise NotFittedError("MissForest is not fitted yet.")
 
