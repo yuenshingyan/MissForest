@@ -16,7 +16,6 @@ class IntegrationTests(unittest.TestCase):
         """Special method that is automatically called before each test
         method is executed. It is used to set up `MissForest` instance that
         is shared across multiple tests."""
-        self.missforest = MissForest()
 
         while True:
             # make synthetic datasets
@@ -90,13 +89,16 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(train_imputed.isnull().sum().sum(), 0)
         self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
-    def test_integration_unseen_categories(self):
+    @staticmethod
+    def test_integration_unseen_categories():
         """Tests if MissForest can run properly when are unseen categories."""
-        df = pd.DataFrame({"A": [1, 2, 3, 4], "B": ["C1", "C2", "C3", "C1"]})
-        train = df[df["B"] != "C1"].copy()
-        test = df[df["B"] == "C1"].copy()
+        df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 1, 2, 0]})
+        train = df[df["B"] != 0].copy()
+        test = df[df["B"] == 0].copy()
         train.iloc[0, 0] = np.nan
         test.iloc[0, 0] = np.nan
-        self.missforest.fit(train, categorical=["B"])
-        self.missforest.transform(train)
-        self.missforest.transform(test)
+
+        mf = MissForest(categorical=["B"])
+        mf.fit(train)
+        mf.transform(train)
+        mf.transform(test)
