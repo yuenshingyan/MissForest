@@ -467,7 +467,7 @@ class MissForest:
                       f"moved to `fit` method. `MissForest` will now imputes "
                       f"unseen missing values with fitted estimators with "
                       f"`transform` method. To retain the old behaviour, use "
-                      f"`fit_transform` instead.")
+                      f"`fit_transform` to fit the whole unseen data instead.")
 
         if not self._is_fitted:
             raise NotFittedError("MissForest is not fitted yet.")
