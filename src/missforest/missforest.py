@@ -391,8 +391,8 @@ class MissForest:
 
             # Store imputed categorical and numerical features after
             # each iteration.
-            x_imp_cat.append(x_imp[self.categorical].reset_index(drop=True))
-            x_imp_num.append(x_imp[self.numerical].reset_index(drop=True))
+            x_imp_cat.append(x_imp[self.categorical])
+            x_imp_num.append(x_imp[self.numerical])
             x_imps.append(x_imp)
 
             # Compute and store PFC.
@@ -414,7 +414,12 @@ class MissForest:
                     )
                 )
 
-            if self._is_stopping_criterion_satisfied(pfc_score, nrmse_score):
+            if (
+                    self.early_stopping and
+                    self._is_stopping_criterion_satisfied(
+                        pfc_score,
+                        nrmse_score
+                    )):
                 self._is_fitted = True
                 warnings.warn("Stopping criterion triggered during fitting. "
                               "Before last imputation matrix will be returned."
@@ -475,8 +480,8 @@ class MissForest:
 
             # Store imputed categorical and numerical features after
             # each iteration.
-            x_imp_cat.append(x_imp[self.categorical].reset_index(drop=True))
-            x_imp_num.append(x_imp[self.numerical].reset_index(drop=True))
+            x_imp_cat.append(x_imp[self.categorical])
+            x_imp_num.append(x_imp[self.numerical])
             x_imps.append(x_imp)
 
             # Compute and store PFC.
@@ -498,7 +503,12 @@ class MissForest:
                     )
                 )
 
-            if self._is_stopping_criterion_satisfied(pfc_score, nrmse_score):
+            if (
+                    self.early_stopping and
+                    self._is_stopping_criterion_satisfied(
+                        pfc_score,
+                        nrmse_score
+                    )):
                 warnings.warn("Stopping criterion triggered during transform. "
                               "Before last imputation matrix will be returned."
                               )
