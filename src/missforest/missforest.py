@@ -60,6 +60,9 @@ class MissForest:
         All numerical columns of given dataframe `x`.
     _is_fitted : bool
         A state that determines if an instance of `MissForest` is fitted.
+    _estimators : OrderedDict
+        A ordered dictionary that stores estimators for each feature of each
+        iteration.
 
     Methods
     -------
@@ -76,10 +79,9 @@ class MissForest:
         Imputes the values of features using the mean or median for
         numerical variables; otherwise, uses the mode for imputation.
     fit(self, x: pd.DataFrame, categorical: Iterable[Any] = None)
-        Checks if the arguments are valid and initializes different class
-        attributes.
+        Fit `MissForest`.
     transform(self, x: pd.DataFrame)
-        Imputes all missing values in `x`.
+        Imputes all missing values in `x` with fitted estimators.
     fit_transform(self, x: pd.DataFrame, categorical: Iterable[Any] = None)
         Calls class methods `fit` and `transform` on `x`.
     """
@@ -290,8 +292,7 @@ class MissForest:
         return False
 
     def fit(self, x: pd.DataFrame):
-        """Checks if the arguments are valid and initializes different class
-        attributes.
+        """Fit `MissForest`.
 
         Parameters
         ----------
