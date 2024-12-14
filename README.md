@@ -47,6 +47,7 @@ df = pd.read_csv("insurance.csv")
 df["sex"] = df["sex"].map({"male": 0, "female": 1})
 df["region"] = df["region"].map({
     "southwest": 0, "southeast": 1, "northwest": 2, "northeast": 3})
+df["smoker"] = df["smoker"].map({"yes": 0, "no": 1})
 
 # Create missing values.
 for c in df.columns:
@@ -59,22 +60,16 @@ train, test = train_test_split(df, test_size=.3, shuffle=True,
                                random_state=42)
 
 # Default estimators are lgbm classifier and regressor
-mf = MissForest()
-mf.fit(
-    x=train,
-    categorical=["sex", "smoker", "region"]
-)
+mf = MissForest(categorical=["sex", "smoker", "region"])
+mf.fit(x=train)
 train_imputed = mf.transform(x=train)
 test_imputed = mf.transform(x=test)
 ```
 
 Or using the `fit_transform` method
 ```python
-mf = MissForest()
-train_imputed = mf.fit_transform(
-    X=train,
-    categorical=["sex", "smoker", "region"]
-)
+mf = MissForest(categorical=["sex", "smoker", "region"])
+train_imputed = mf.fit_transform(X=train)
 test_imputed = mf.transform(X=test)
 print(test_imputed)
 ```
@@ -100,16 +95,61 @@ mf = MissForest(clf, rgr)
 df_imputed = mf.fit_transform(df)
 ```
 
+# Pseudo Code
+![image](fig/pseudo_code.png)
+
+# Figures
+Here are some figures and tables from **Stekhoven and Buhlmann (2012)**
+![image](fig/figure_1.png)
+
+Figure 1: Continuous data. Average NRMSE for KNNimpute (grey), MissPALasso (white) and missForest (black) on four different data sets and three different amounts of missing values, i.e., 10%, 20%
+and 30%. Standard errors are in the order of magnitude of 10−4
+. Significance levels for the paired
+Wilcoxon tests in favour of missForest are encoded as “*” <0.05, “**” <0.01 and “***” <0.001. If the
+average error of the compared method is smaller than that of missForest the significance level is encoded
+by a hash (#) instead of an asterisk. In the lowermost data set results for MissPALasso are missing due
+to the methods limited capability with regard to high dimensions.
+
+![image](fig/figure_2.png)
+
+Figure 2: Categorical data. Average PFC for cross-validated KNNimpute (grey), MICE (white) and
+missForest (black) on three different data sets and three different amounts of missing values, i.e., 10%,
+20% and 30%. Standard errors are in the order of magnitude of 10−4
+. Significance levels for the paired
+Wilcoxon tests in favour of missForest are encoded as “*” <0.05, “**” <0.01 and “***” <0.001.
 
 
-# Benchmark
+![image](fig/figure_3.png)
 
-Mean Absolute Percentage Error
-|         | missForest | mean/mode | Difference |
-|:-------:|:----------:|:---------:|:----------:|
-| charges | 2.65%      | 9.72%     |  -7.07%    |
-| age     | 1.16%      | 2.77%     |  -1.61%    |
-| bmi     | 1.18%      | 1.25%     |  -0.07%    |
-| sex     | 21.21      | 31.82     |  -10.61    |
-| smoker  |  4.24      |  9.90     |   -5.66    |
-| region  | 46.67      | 38.96     |   +7.71    |
+
+Figure 3: Mixed-type data. Average NRMSE (left bar) and PFC (right bar, shaded) for KNNimpute
+(grey), MICE (white) and missForest (black) on four different data sets and three different amounts
+of missing values, i.e., 10%, 20% and 30%. Standard errors are in the order of magnitude of 10−3
+.
+Significance levels for the paired Wilcoxon tests in favour of missForest are encoded as “*” <0.05, “**”
+<0.01 and “***” <0.001. If the average error of the compared method is smaller than that of missForest
+the significance level is encoded by a hash (#) instead of an asterisk. Note that, due to ill-distribution
+and near dependence in the Child hospital data, the results for MICE have to be treated with caution (see
+Section 4.3).
+
+
+![image](fig/figure_4.png)
+
+Figure 4: Difference of true imputation error errtrue and OOB imputation error estimate err cOOB for the
+continuous data sets (left) and the categorical data sets (right) and three different amounts of missing
+values, i.e., 0.1, 0.2 and 0.3. In each case the average errtrue (circle) and the average err cOOB (plus) over
+all simulations is given.
+
+
+![image](fig/table_1.png)
+
+Table 1: Average runtimes [s] for imputing the analyzed data sets. Runtimes are averaged over the
+amount of missing values since this has a negligible effect on computing time.
+
+
+![image](fig/table_2.png)
+
+Table 2: Average imputation error (NRMSE/PFC in percent) and runtime (in seconds) with different
+numbers of trees (ntree) grown in each forest and variables tried (mtry) at each node of the trees. Here,
+we consider the GFOP data set with artificially introduced 10% of missing values. For each comparison 50 simulation runs were performed using always the same missing value matrix for all numbers of
+trees/randomly selected variables for a single simulation.
