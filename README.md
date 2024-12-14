@@ -105,7 +105,7 @@ Here are some figures and tables from **Stekhoven and Buhlmann (2012)**
 Figure 1: Continuous data. Average NRMSE for KNNimpute (grey), MissPALasso (white) and missForest (black) on four different data sets and three different amounts of missing values, i.e., 10%, 20%
 and 30%. Standard errors are in the order of magnitude of 10−4
 . Significance levels for the paired
-Wilcoxon tests in favour of missForest are encoded as “*” <0.05, “**” <0.01 and “***” <0.001. If the
+Wilcoxon tests in favour of missForest are encoded as “&ast;” <0.05, “&ast;&ast;” <0.01 and “&ast;&ast;&ast;” <0.001. If the
 average error of the compared method is smaller than that of missForest the significance level is encoded
 by a hash (#) instead of an asterisk. In the lowermost data set results for MissPALasso are missing due
 to the methods limited capability with regard to high dimensions.
@@ -116,7 +116,7 @@ Figure 2: Categorical data. Average PFC for cross-validated KNNimpute (grey), MI
 missForest (black) on three different data sets and three different amounts of missing values, i.e., 10%,
 20% and 30%. Standard errors are in the order of magnitude of 10−4
 . Significance levels for the paired
-Wilcoxon tests in favour of missForest are encoded as “*” <0.05, “**” <0.01 and “***” <0.001.
+Wilcoxon tests in favour of missForest are encoded as “&ast;” <0.05, “&ast;&ast;” <0.01 and “*&ast;&ast;&ast;” <0.001.
 
 
 ![image](fig/figure_3.png)
@@ -126,8 +126,8 @@ Figure 3: Mixed-type data. Average NRMSE (left bar) and PFC (right bar, shaded) 
 (grey), MICE (white) and missForest (black) on four different data sets and three different amounts
 of missing values, i.e., 10%, 20% and 30%. Standard errors are in the order of magnitude of 10−3
 .
-Significance levels for the paired Wilcoxon tests in favour of missForest are encoded as “*” <0.05, “**”
-<0.01 and “***” <0.001. If the average error of the compared method is smaller than that of missForest
+Significance levels for the paired Wilcoxon tests in favour of missForest are encoded as “&ast;” <0.05, “&ast;&ast;”
+<0.01 and “&ast;&ast;&ast;” <0.001. If the average error of the compared method is smaller than that of missForest
 the significance level is encoded by a hash (#) instead of an asterisk. Note that, due to ill-distribution
 and near dependence in the Child hospital data, the results for MICE have to be treated with caution (see
 Section 4.3).
