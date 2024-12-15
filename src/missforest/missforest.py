@@ -30,7 +30,7 @@ from ._validate import (
     _validate_verbose,
 )
 from .metrics import pfc, nrmse
-from ._array import DynamicArray
+from ._array import SafeArray
 from typing import Any, Iterable, Dict
 from sklearn.base import BaseEstimator
 from tqdm import tqdm
@@ -249,16 +249,16 @@ class MissForest:
 
         return x
 
-    def _is_stopping_criterion_satisfied(self, pfc_score: DynamicArray,
-                                         nrmse_score: DynamicArray) -> bool:
+    def _is_stopping_criterion_satisfied(self, pfc_score: SafeArray,
+                                         nrmse_score: SafeArray) -> bool:
         """Checks if stopping criterion satisfied. If satisfied, return True.
         Otherwise, return False.
 
         Parameters
         ----------
-        pfc_score : DynamicArray
+        pfc_score : SafeArray
             Latest 2 PFC scores.
-        nrmse_score : DynamicArray
+        nrmse_score : SafeArray
             Latest 2 NRMSE scores.
 
         Returns
@@ -378,11 +378,11 @@ class MissForest:
         )
         x_imp = self._initial_impute(x, self.initial_imputations)
 
-        x_imps = DynamicArray(dtype=pd.DataFrame)
-        x_imp_cat = DynamicArray(dtype=pd.DataFrame)
-        x_imp_num = DynamicArray(dtype=pd.DataFrame)
-        pfc_score = DynamicArray(dtype=float)
-        nrmse_score = DynamicArray(dtype=float)
+        x_imps = SafeArray(dtype=pd.DataFrame)
+        x_imp_cat = SafeArray(dtype=pd.DataFrame)
+        x_imp_num = SafeArray(dtype=pd.DataFrame)
+        pfc_score = SafeArray(dtype=float)
+        nrmse_score = SafeArray(dtype=float)
         
         _loop = range(self.max_iter)
         if self._verbose >= 1:
@@ -506,11 +506,11 @@ class MissForest:
         missing_indices = self._get_missing_indices(x)
         x_imp = self._initial_impute(x, self.initial_imputations)
 
-        x_imps = DynamicArray(dtype=pd.DataFrame)
-        x_imp_cat = DynamicArray(dtype=pd.DataFrame)
-        x_imp_num = DynamicArray(dtype=pd.DataFrame)
-        pfc_score = DynamicArray(dtype=float)
-        nrmse_score = DynamicArray(dtype=float)
+        x_imps = SafeArray(dtype=pd.DataFrame)
+        x_imp_cat = SafeArray(dtype=pd.DataFrame)
+        x_imp_num = SafeArray(dtype=pd.DataFrame)
+        pfc_score = SafeArray(dtype=float)
+        nrmse_score = SafeArray(dtype=float)
         
         _loop = self._estimators
         if self._verbose >= 1:
