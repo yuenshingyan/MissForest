@@ -99,11 +99,11 @@ df_imputed = mf.fit_transform(df)
 ```
 
 # Pseudo Code
-![image](fig/pseudo_code.png)
+[<img src="https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/pseudo_code.png">](https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/pseudo_code.png)
 
 # Figures
 Here are some figures and tables from **Stekhoven and Buhlmann (2012)**
-![image](fig/figure_1.png)
+[<img src="https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/figure_1.png">](https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/figure_1.png)
 
 Figure 1: Continuous data. Average NRMSE for KNNimpute (grey), MissPALasso (white) and missForest (black) on four different data sets and three different amounts of missing values, i.e., 10%, 20%
 and 30%. Standard errors are in the order of magnitude of 10−4
@@ -113,7 +113,8 @@ average error of the compared method is smaller than that of missForest the sign
 by a hash (#) instead of an asterisk. In the lowermost data set results for MissPALasso are missing due
 to the methods limited capability with regard to high dimensions.
 
-![image](fig/figure_2.png)
+[<img src="https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/figure_2.png">](https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/figure_2.png)
+
 
 Figure 2: Categorical data. Average PFC for cross-validated KNNimpute (grey), MICE (white) and
 missForest (black) on three different data sets and three different amounts of missing values, i.e., 10%,
@@ -122,10 +123,10 @@ missForest (black) on three different data sets and three different amounts of m
 Wilcoxon tests in favour of missForest are encoded as “&ast;” <0.05, “&ast;&ast;” <0.01 and “*&ast;&ast;&ast;” <0.001.
 
 
-![image](fig/figure_3.png)
+[<img src="https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/figure_3.png">](https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/figure_3.png)
 
 
-Figure 3: Mixed-type data. Average NRMSE (left bar) and PFC (right bar, shaded) for KNNimpute
+Figure 3: Mixed-type data. Average NRMSE (left bar) and PFC (right bar, shaded) for KNNimput1
 (grey), MICE (white) and missForest (black) on four different data sets and three different amounts
 of missing values, i.e., 10%, 20% and 30%. Standard errors are in the order of magnitude of 10−3
 .
@@ -136,7 +137,7 @@ and near dependence in the Child hospital data, the results for MICE have to be 
 Section 4.3).
 
 
-![image](fig/figure_4.png)
+[<img src="https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/figure_4.png">](https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/figure_4.png)
 
 Figure 4: Difference of true imputation error errtrue and OOB imputation error estimate err cOOB for the
 continuous data sets (left) and the categorical data sets (right) and three different amounts of missing
@@ -144,13 +145,13 @@ values, i.e., 0.1, 0.2 and 0.3. In each case the average errtrue (circle) and th
 all simulations is given.
 
 
-![image](fig/table_1.png)
+[<img src="https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/table_1.png">](https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/table_1.png)
 
 Table 1: Average runtimes [s] for imputing the analyzed data sets. Runtimes are averaged over the
 amount of missing values since this has a negligible effect on computing time.
 
 
-![image](fig/table_2.png)
+[<img src="https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/table_2.png">](https://raw.githubusercontent.com/yuenshingyan/MissForest/refs/heads/main/fig/table_2.png)
 
 Table 2: Average imputation error (NRMSE/PFC in percent) and runtime (in seconds) with different
 numbers of trees (ntree) grown in each forest and variables tried (mtry) at each node of the trees. Here,
