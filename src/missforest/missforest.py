@@ -388,7 +388,7 @@ class MissForest:
             _loop = tqdm(_loop)
         
         for i in _loop:
-            self._estimators[i] = OrderedDict()
+            self._estimators[i] = {}
 
             for c in missing_indices:
                 if c in self.categorical:
