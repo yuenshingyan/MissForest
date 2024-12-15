@@ -321,8 +321,7 @@ class MissForest:
         Raises
         ------
         ValueError
-            - If argument `x` is not a pandas DataFrame, NumPy array, or
-              list of lists.
+            - If argument `x` is not a pandas DataFrame or NumPy array.
             - If argument `categorical` is not a list of strings or NoneType.
             - If argument `categorical` is NoneType and has a length of
               less than one.
