@@ -3,6 +3,7 @@
 from ._info import VERSION, AUTHOR
 
 __all__ = [
+    "_validate_verbose",
     "_validate_clf",
     "_validate_rgr",
     "_validate_initial_guess",
@@ -27,6 +28,19 @@ from sklearn.base import BaseEstimator
 import pandas as pd
 import numpy as np
 from .errors import FeaturesDataTypeInconsistentError
+
+
+def _validate_verbose(verbose: int):
+    """Checks if argument `verbose` is either 0, 1 or 2.
+
+    Parameters
+    ----------
+    verbose : int
+        Verbosity to be checked.
+    """
+
+    if verbose not in (0, 1, 2):
+        raise ValueError("Argument `verbose` must be either 0, 1, or 2.")
 
 
 def _validate_imputable(x: pd.DataFrame):
