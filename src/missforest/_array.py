@@ -1,9 +1,9 @@
-"""This module contains `DynamicArray` code."""
+"""This module contains `SafeArray` code."""
 
 
 from ._info import VERSION, AUTHOR
 
-__all__ = ["DynamicArray"]
+__all__ = ["SafeArray"]
 __version__ = VERSION
 __author__ = AUTHOR
 
@@ -11,7 +11,7 @@ __author__ = AUTHOR
 from typing import Any
 
 
-class DynamicArray:
+class SafeArray:
     """Typed array that will never exceed its capacity."""
     def __init__(self, dtype: Any, capacity: int = 2):
         self.capacity = capacity
