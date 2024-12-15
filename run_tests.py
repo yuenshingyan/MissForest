@@ -20,6 +20,7 @@ from tests.unit_tests.validate_infinite import ValidateInfinite
 from tests.unit_tests.validate_initial_guess import ValidateInitialGuess
 from tests.unit_tests.validate_max_iter import ValidateMaxIter
 from tests.unit_tests.validate_rgr import ValidateRegressor
+from tests.unit_tests.validate_verbose import ValidateVerbose
 import unittest
 
 
