@@ -63,7 +63,7 @@ class MissForest:
         Sorting order of features.
     _is_fitted : bool
         A state that determines if an instance of `MissForest` is fitted.
-    _estimators : OrderedDict
+    _estimators : list
         A ordered dictionary that stores estimators for each feature of each
         iteration.
     _verbose : int
@@ -147,7 +147,7 @@ class MissForest:
         self.column_order = None
         self.initial_imputations = None
         self._is_fitted = False
-        self._estimators = OrderedDict()
+        self._estimators = []
         self._verbose = verbose
 
     @staticmethod
@@ -377,18 +377,17 @@ class MissForest:
         )
         x_imp = self._initial_impute(x, self.initial_imputations)
 
-        x_imps = SafeArray(dtype=pd.DataFrame)
         x_imp_cat = SafeArray(dtype=pd.DataFrame)
         x_imp_num = SafeArray(dtype=pd.DataFrame)
         pfc_score = SafeArray(dtype=float)
         nrmse_score = SafeArray(dtype=float)
-        
-        _loop = range(self.max_iter)
+
+        loop = range(self.max_iter)
         if self._verbose >= 1:
-            _loop = tqdm(_loop)
-        
-        for i in _loop:
-            self._estimators[i] = {}
+            loop = tqdm(loop)
+
+        for _ in loop:
+            fitted_estimators = OrderedDict()
 
             for c in missing_indices:
                 if c in self.categorical:
@@ -411,13 +410,14 @@ class MissForest:
                     )
 
                 # Store trained estimators.
-                self._estimators[i][c] = estimator
+                fitted_estimators[c] = estimator
+
+            self._estimators.append(fitted_estimators)
 
             # Store imputed categorical and numerical features after
             # each iteration.
             x_imp_cat.append(x_imp[self.categorical])
             x_imp_num.append(x_imp[self.numerical])
-            x_imps.append(x_imp)
 
             # Compute and store PFC.
             if any(self.categorical) and len(x_imp_cat) >= 2:
@@ -450,6 +450,9 @@ class MissForest:
                         "Stopping criterion triggered during fitting. "
                         "Before last imputation matrix will be returned."
                     )
+
+                # Remove last iteration of estimators.
+                self._estimators = self._estimators[:-1]
 
                 return self
 
@@ -510,16 +513,19 @@ class MissForest:
         x_imp_num = SafeArray(dtype=pd.DataFrame)
         pfc_score = SafeArray(dtype=float)
         nrmse_score = SafeArray(dtype=float)
-        
-        _loop = self._estimators
+
+        loop = range(len(self._estimators))
         if self._verbose >= 1:
-            _loop = tqdm(_loop)
-        
-        for i in _loop:
-            for c, estimator in self._estimators[i].items():
-                if x[c].isnull().any():
-                    x_obs = x_imp.loc[missing_indices[c]].drop(c, axis=1)
-                    x_imp.loc[missing_indices[c], c] = (
+            loop = tqdm(loop)
+
+        for i in loop:
+            for feature, estimator in self._estimators[i].items():
+                if x[feature].isnull().any():
+                    x_obs = (
+                        x_imp.loc[missing_indices[feature]]
+                        .drop(feature, axis=1)
+                    )
+                    x_imp.loc[missing_indices[feature], feature] = (
                         estimator.predict(x_obs).tolist()
                     )
 
@@ -559,7 +565,7 @@ class MissForest:
                         "Stopping criterion triggered during transform. "
                         "Before last imputation matrix will be returned."
                     )
-                    
+
                 return x_imps[-2]
 
         return x_imps[-1]
