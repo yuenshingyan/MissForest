@@ -27,6 +27,7 @@ from ._validate import (
     _validate_infinite,
     _validate_empty_feature,
     _validate_imputable,
+    _validate_verbose,
 )
 from .metrics import pfc, nrmse
 from ._array import DynamicArray
@@ -36,8 +37,8 @@ from tqdm import tqdm
 import warnings
 
 
-lgbm_clf = LGBMClassifier(verbosity=-1)
-lgbm_rgr = LGBMRegressor(verbosity=-1)
+lgbm_clf = LGBMClassifier(verbosity=-1, linear_tree=True)
+lgbm_rgr = LGBMRegressor(verbosity=-1, linear_tree=True)
 
 
 class MissForest:
@@ -58,12 +59,16 @@ class MissForest:
         All categorical columns of given dataframe `x`.
     numerical : list
         All numerical columns of given dataframe `x`.
+    column_order : pd.Index
+        Sorting order of features.
     _is_fitted : bool
         A state that determines if an instance of `MissForest` is fitted.
     _estimators : OrderedDict
         A ordered dictionary that stores estimators for each feature of each
         iteration.
-
+    _verbose : int
+        Determines if messages will be printed out.
+    
     Methods
     -------
     _get_n_missing(x: pd.DataFrame)
@@ -90,7 +95,8 @@ class MissForest:
                  rgr: Union[Any, BaseEstimator] = lgbm_rgr,
                  categorical: Iterable[Any] = None,
                  initial_guess: str = "median", max_iter: int = 5,
-                 early_stopping=True) -> None:
+                 early_stopping: bool = True, 
+                 verbose: int = 2) -> None:
         """
         Parameters
         ----------
@@ -107,7 +113,9 @@ class MissForest:
             If `median`, initial imputation will be the median of the features.
         early_stopping : bool
             Determines if early stopping will be executed.
-
+        verbose : int
+            Determines if message will be printed out.
+        
         Raises
         ------
         ValueError
@@ -127,6 +135,7 @@ class MissForest:
         _validate_initial_guess(initial_guess)
         _validate_max_iter(max_iter)
         _validate_early_stopping(early_stopping)
+        _validate_verbose(verbose)
 
         self.classifier = clf
         self.regressor = rgr
@@ -135,9 +144,11 @@ class MissForest:
         self.max_iter = max_iter
         self.early_stopping = early_stopping
         self.numerical = None
+        self.column_order = None
         self.initial_imputations = None
         self._is_fitted = False
         self._estimators = OrderedDict()
+        self._verbose = verbose
 
     @staticmethod
     def _get_n_missing(x: pd.DataFrame) -> int:
@@ -269,7 +280,8 @@ class MissForest:
                 any(self.numerical) and
                 is_pfc_increased * is_nrmse_increased
         ):
-            warnings.warn("Both PFC and NRMSE have increased.")
+            if self._verbose >= 2:
+                warnings.warn("Both PFC and NRMSE have increased.")
 
             return True
         elif (
@@ -277,7 +289,8 @@ class MissForest:
                 not any(self.numerical) and
                 is_pfc_increased
         ):
-            warnings.warn("PFC have increased.")
+            if self._verbose >= 2:
+                warnings.warn("PFC have increased.")
 
             return True
         elif (
@@ -285,7 +298,8 @@ class MissForest:
                 any(self.numerical) and
                 is_nrmse_increased
         ):
-            warnings.warn("NRMSE increased.")
+            if self._verbose >= 2:
+                warnings.warn("NRMSE increased.")
 
             return True
 
@@ -315,9 +329,10 @@ class MissForest:
             - If there are inf values present in argument `x`.
             - If there are one or more columns with all rows missing.
         """
-        warnings.warn("Label encoding is no longer performed by default. "
-                      "Users will have to perform categorical features "
-                      "encoding by themselves.")
+        if self._verbose >= 2:
+            warnings.warn("Label encoding is no longer performed by default. "
+                          "Users will have to perform categorical features "
+                          "encoding by themselves.")
 
         x = x.copy()
 
@@ -353,8 +368,8 @@ class MissForest:
         # Sort column order according to the amount of missing values
         # starting with the lowest amount.
         pct_missing = x.isnull().sum() / len(x)
-        order = pct_missing.sort_values().index
-        x = x[order].copy()
+        self.column_order = pct_missing.sort_values().index
+        x = x[self.column_order].copy()
 
         n_missing = self._get_n_missing(x)
         missing_indices = self._get_missing_indices(x)
@@ -368,7 +383,12 @@ class MissForest:
         x_imp_num = DynamicArray(dtype=pd.DataFrame)
         pfc_score = DynamicArray(dtype=float)
         nrmse_score = DynamicArray(dtype=float)
-        for i in tqdm(range(self.max_iter)):
+        
+        _loop = range(self.max_iter)
+        if self._verbose >= 1:
+            _loop = tqdm(_loop)
+        
+        for i in _loop:
             self._estimators[i] = OrderedDict()
 
             for c in missing_indices:
@@ -426,10 +446,11 @@ class MissForest:
                         nrmse_score
                     )):
                 self._is_fitted = True
-                warnings.warn(
-                    "Stopping criterion triggered during fitting. "
-                    "Before last imputation matrix will be returned."
-                )
+                if self._verbose >= 2:
+                    warnings.warn(
+                        "Stopping criterion triggered during fitting. "
+                        "Before last imputation matrix will be returned."
+                    )
 
                 return self
 
@@ -459,15 +480,17 @@ class MissForest:
         ValueError
             If there are no missing values in `x`.
         """
-        warnings.warn("Label encoding is no longer performed by default. "
-                      "Users will have to perform categorical features "
-                      "encoding by themselves.")
+        if self._verbose >= 2:
+            warnings.warn("Label encoding is no longer performed by default. "
+                          "Users will have to perform categorical features "
+                          "encoding by themselves.")
 
-        warnings.warn(f"In version {VERSION}, estimator fitting process is "
-                      f"moved to `fit` method. `MissForest` will now imputes "
-                      f"unseen missing values with fitted estimators with "
-                      f"`transform` method. To retain the old behaviour, use "
-                      f"`fit_transform` to fit the whole unseen data instead.")
+            warnings.warn(f"In version {VERSION}, estimator fitting process "
+                          f"is moved to `fit` method. `MissForest` will now "
+                          f"imputes unseen missing values with fitted "
+                          f"estimators with `transform` method. To retain the "
+                          f"old behaviour, use `fit_transform` to fit the "
+                          f"whole unseen data instead.")
 
         if not self._is_fitted:
             raise NotFittedError("MissForest is not fitted yet.")
@@ -476,6 +499,8 @@ class MissForest:
         _validate_empty_feature(x)
         _validate_feature_dtype_consistency(x)
         _validate_imputable(x)
+
+        x = x[self.column_order].copy()
 
         n_missing = self._get_n_missing(x)
         missing_indices = self._get_missing_indices(x)
@@ -486,7 +511,12 @@ class MissForest:
         x_imp_num = DynamicArray(dtype=pd.DataFrame)
         pfc_score = DynamicArray(dtype=float)
         nrmse_score = DynamicArray(dtype=float)
-        for i in tqdm(self._estimators):
+        
+        _loop = self._estimators
+        if self._verbose >= 1:
+            _loop = tqdm(_loop)
+        
+        for i in _loop:
             for c, estimator in self._estimators[i].items():
                 if x[c].isnull().any():
                     x_obs = x_imp.loc[missing_indices[c]].drop(c, axis=1)
@@ -525,10 +555,12 @@ class MissForest:
                         pfc_score,
                         nrmse_score
                     )):
-                warnings.warn(
-                    "Stopping criterion triggered during transform. "
-                    "Before last imputation matrix will be returned."
-                )
+                if self._verbose >= 2:
+                    warnings.warn(
+                        "Stopping criterion triggered during transform. "
+                        "Before last imputation matrix will be returned."
+                    )
+                    
                 return x_imps[-2]
 
         return x_imps[-1]
