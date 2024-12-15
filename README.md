@@ -59,8 +59,10 @@ for c in df.columns:
 train, test = train_test_split(df, test_size=.3, shuffle=True,
                                random_state=42)
 
+categorical=["sex", "smoker", "region", "children"]
+
 # Default estimators are lgbm classifier and regressor
-mf = MissForest(categorical=["sex", "smoker", "region"])
+mf = MissForest(categorical=categorical)
 mf.fit(x=train)
 train_imputed = mf.transform(x=train)
 test_imputed = mf.transform(x=test)
@@ -68,7 +70,7 @@ test_imputed = mf.transform(x=test)
 
 Or using the `fit_transform` method
 ```python
-mf = MissForest(categorical=["sex", "smoker", "region"])
+mf = MissForest(categorical=categorical)
 train_imputed = mf.fit_transform(X=train)
 test_imputed = mf.transform(X=test)
 print(test_imputed)
@@ -88,10 +90,11 @@ for c in df.columns:
     random_index = np.random.choice(df.index, size=100)
     df.loc[random_index, c] = np.nan
 
-clf = RandomForestClassifier(n_jobs=-1)
-rgr = RandomForestRegressor(n_jobs=-1)
-
-mf = MissForest(clf, rgr)
+mf = MissForest(
+    clf=RandomForestClassifier(n_jobs=-1), 
+    rgr=RandomForestRegressor(n_jobs=-1), 
+    categorical=categorical,
+)
 df_imputed = mf.fit_transform(df)
 ```
 
