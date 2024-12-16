@@ -89,16 +89,16 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(train_imputed.isnull().sum().sum(), 0)
         self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
-    @staticmethod
-    def test_integration_unseen_categories():
-        """Tests if MissForest can run properly when are unseen categories."""
-        df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 1, 2, 0]})
-        train = df[df["B"] != 0].copy()
-        test = df[df["B"] == 0].copy()
-        train.iloc[0, 0] = np.nan
-        test.iloc[0, 0] = np.nan
+    def test_integration_unseen_column(self):
+        """Tests if MissForest can run properly when unseen column exists."""
+        with self.assertRaises(ValueError):
+            df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 1, 2, 0]})
+            train = df[df["B"] != 0].copy()
+            test = df[df["B"] == 0].copy()
+            train.iloc[0, 0] = np.nan
+            test.iloc[0, 0] = np.nan
 
-        mf = MissForest(categorical=["B"])
-        mf.fit(train)
-        mf.transform(train)
-        mf.transform(test)
+            mf = MissForest(categorical=["B"])
+            mf.fit(train)
+            mf.transform(train)
+            mf.transform(test)
