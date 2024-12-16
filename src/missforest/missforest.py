@@ -165,7 +165,7 @@ class MissForest:
         int
             Total number of missing values in `x`.
         """
-        return x.isnull().sum().sum()
+        return int(x.isnull().sum().sum())
 
     @staticmethod
     def _get_missing_indices(x: pd.DataFrame) -> Dict[Any, pd.Index]:
