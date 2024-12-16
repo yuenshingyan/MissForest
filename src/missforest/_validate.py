@@ -18,6 +18,7 @@ __all__ = [
     "_validate_infinite",
     "_validate_empty_feature",
     "_validate_imputable",
+    "_validate_column_consistency",
 ]
 __version__ = VERSION
 __author__ = AUTHOR
@@ -28,6 +29,25 @@ from sklearn.base import BaseEstimator
 import pandas as pd
 import numpy as np
 from .errors import FeaturesDataTypeInconsistentError
+
+
+def _validate_column_consistency(existing: set, new: set):
+    """Checks if columns in argument `x` are consistent.
+
+    Parameters
+    ----------
+    existing : set
+        Existing columns.
+    new : set
+        New columns.
+
+    Raises
+    ------
+    ValueError
+        - If existing and new columns are not consistent.
+    """
+    if existing != new:
+        raise ValueError("Columns are not consistent.")
 
 
 def _validate_verbose(verbose: int):
