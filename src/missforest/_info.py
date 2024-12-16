@@ -2,5 +2,5 @@
 
 __all__ = ["VERSION", "AUTHOR"]
 
-VERSION = "4.1.1"
+VERSION = "4.2.1"
 AUTHOR = "Yuen Shing Yan Hindy"
