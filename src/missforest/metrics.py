@@ -43,7 +43,7 @@ def pfc(x_true: pd.DataFrame, x_imp: pd.DataFrame, n_missing: int) -> float:
         raise ValueError("Argument `n_missing` must be positive.")
 
     if n_missing == 0:
-        return 0
+        return 0.0
 
     return np.sum(np.sum(x_true != x_imp, axis=1)) / n_missing
 
