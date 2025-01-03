@@ -44,7 +44,8 @@ class SafeArray:
             `self.dtype`.
         """
         if not isinstance(item, self.dtype):
-            raise ValueError(f"Datatype of new item must {self.dtype}.")
+            raise ValueError(f"Datatype of new item must `{self.dtype}`, "
+                             f"found `{type(item)}`.")
 
         if len(self.items) >= self.capacity:
             self.items.pop(0)
