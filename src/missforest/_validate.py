@@ -77,8 +77,7 @@ def _validate_imputable(x: pd.DataFrame):
         - If argument `x` does not contain any missing value.
     """
     if not x.isnull().any().any():
-        raise ValueError(
-            "Argument `x` must contains at least one missing value.")
+        raise ValueError("Argument `x` must contains at least one missing value.")
 
 
 def _validate_empty_feature(x: pd.DataFrame):
@@ -95,8 +94,7 @@ def _validate_empty_feature(x: pd.DataFrame):
         - If argument `x` has any features that contains no values.
     """
     if x.isnull().all().any():
-        raise ValueError(
-            "One or more columns have all missing values in argument `x`.")
+        raise ValueError("One or more columns have all missing values in argument `x`.")
 
 
 def _validate_infinite(x: pd.DataFrame):
@@ -149,8 +147,9 @@ def _validate_cat_var_consistency(features: Iterable, categorical: Iterable):
         - If `features` is not a subset of `categorical`.
     """
     if not set(categorical).issubset(features):
-        raise ValueError("Not all features in argument `categorical` "
-                         "existed in `x` columns.")
+        raise ValueError(
+            "Not all features in argument `categorical` existed in `x` columns."
+        )
 
 
 def _validate_consistent_dimensions(mat1: pd.DataFrame, mat2: pd.DataFrame):
@@ -169,8 +168,7 @@ def _validate_consistent_dimensions(mat1: pd.DataFrame, mat2: pd.DataFrame):
         - If argument `mat1` and `mat2` does not share the same shape.
     """
     if mat1.shape != mat2.shape:
-        raise ValueError(
-            "Argument `mat1` and `mat2` does not share the same shape.")
+        raise ValueError("Argument `mat1` and `mat2` does not share the same shape.")
 
 
 def _validate_2d(x: Any):
@@ -269,8 +267,7 @@ def _validate_initial_guess(initial_guess: str):
         raise ValueError("Argument `initial_guess` must be str.")
 
     if initial_guess not in ("median", "mean"):
-        raise ValueError(
-            "Argument `initial_guess` can only be `median` or `mean`.")
+        raise ValueError("Argument `initial_guess` can only be `median` or `mean`.")
 
 
 def _validate_clf(clf: Any):
@@ -291,12 +288,11 @@ def _validate_clf(clf: Any):
     if clf is None:
         raise ValueError("Argument `clf` is None.")
 
-    if (
-            not _has_method(clf, "fit") or
-            not _has_method(clf, "predict")
-    ):
-        raise ValueError("Argument `clf` only accept classifier that has "
-                         "class methods `fit` and `predict`.")
+    if not _has_method(clf, "fit") or not _has_method(clf, "predict"):
+        raise ValueError(
+            "Argument `clf` only accept classifier that has "
+            "class methods `fit` and `predict`."
+        )
 
 
 def _validate_rgr(rgr: Any):
@@ -317,12 +313,11 @@ def _validate_rgr(rgr: Any):
     if rgr is None:
         raise ValueError("Argument `rgr` is None.")
 
-    if (
-            not _has_method(rgr, "fit") or
-            not _has_method(rgr, "predict")
-    ):
-        raise ValueError("Argument `rgr` only accept regressor that has "
-                         "class methods `fit` and `predict`.")
+    if not _has_method(rgr, "fit") or not _has_method(rgr, "predict"):
+        raise ValueError(
+            "Argument `rgr` only accept regressor that has "
+            "class methods `fit` and `predict`."
+        )
 
 
 def _has_method(estimator: Union[Any, BaseEstimator], method: str) -> bool:
@@ -364,9 +359,10 @@ def _validate_feature_dtype_consistency(x: pd.DataFrame) -> None:
     vectorized_type = np.vectorize(type)
     for c in x.columns:
         ## Added ##
-        if(x[c].isnull().all()):
+        if x[c].isnull().all():
             continue
         all_type = vectorized_type(x[c].dropna())
         if len(pd.unique(all_type)) > 1:
             raise FeaturesDataTypeInconsistentError(
-                f"Multiple data types found in feature `{c}`.")
+                f"Multiple data types found in feature `{c}`."
+            )

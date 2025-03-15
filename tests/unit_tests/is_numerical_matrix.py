@@ -1,8 +1,8 @@
 """This module contains unit tests for `_is_numerical_matrix`."""
 
-
 import unittest
 import numpy as np
+
 # noinspection PyProtectedMember
 from src.missforest._validate import _is_numerical_matrix
 

@@ -1,7 +1,7 @@
 """This module contains unit tests for `_validate_clf`."""
 
-
 import unittest
+
 # noinspection PyProtectedMember
 from src.missforest._validate import _validate_clf
 
@@ -12,6 +12,7 @@ class ValidateClassifier(unittest.TestCase):
         """Tests if `_validate_clf` raises no ValueError when an instance of
         `MockEstimator` that have class method `fit` and `predict` is passed.
         """
+
         class MockEstimator:
             def __init__(self):
                 pass
@@ -28,6 +29,7 @@ class ValidateClassifier(unittest.TestCase):
     def test_validate_clf_no_fit(self):
         """Tests if `_validate_clf` raises ValueError when an instance of
         `MockEstimator` that have class method `predict` is passed."""
+
         class MockEstimator:
             def __init__(self):
                 pass
@@ -42,6 +44,7 @@ class ValidateClassifier(unittest.TestCase):
     def test_validate_clf_no_predict(self):
         """Tests if `_validate_clf` raises ValueError when an instance of
         `MockEstimator` that have class method `fit` is passed."""
+
         class MockEstimator:
             def __init__(self):
                 pass

@@ -1,7 +1,7 @@
 """This module contains unit tests for `_validate_cat_var_consistency`."""
 
-
 import unittest
+
 # noinspection PyProtectedMember
 from src.missforest._validate import _validate_cat_var_consistency
 

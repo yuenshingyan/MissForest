@@ -68,7 +68,8 @@ def nrmse(x_true: pd.DataFrame, x_imp: pd.DataFrame) -> float:
     if x_true.shape != x_imp.shape:
         raise ValueError(
             f"Argument `x_true` has a shape of {x_true.shape}, "
-            f"which is not identical to the shape of `x_imp` {x_imp.shape}.")
+            f"which is not identical to the shape of `x_imp` {x_imp.shape}."
+        )
 
     if not _is_numerical_matrix(x_true):
         raise ValueError("Argument `x_true` must be fully numerical.")
@@ -76,6 +77,6 @@ def nrmse(x_true: pd.DataFrame, x_imp: pd.DataFrame) -> float:
     if not _is_numerical_matrix(x_imp):
         raise ValueError("Argument `x_imp` must be fully numerical.")
 
-    return np.sum(np.sum(
-        (x_true - x_imp) ** 2, axis=0
-    ), axis=0) / np.sum(np.sum(x_true ** 2, axis=0), axis=0)
+    return np.sum(np.sum((x_true - x_imp) ** 2, axis=0), axis=0) / np.sum(
+        np.sum(x_true**2, axis=0), axis=0
+    )

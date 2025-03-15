@@ -1,6 +1,5 @@
 """This module contains `SafeArray` code."""
 
-
 from ._info import VERSION, AUTHOR
 
 __all__ = ["SafeArray"]
@@ -13,6 +12,7 @@ from typing import Any
 
 class SafeArray:
     """Typed array that will never exceed its capacity."""
+
     def __init__(self, dtype: Any, capacity: int = 2):
         self.capacity = capacity
         self.dtype = dtype
@@ -25,8 +25,10 @@ class SafeArray:
         return self.items[index]
 
     def __repr__(self):
-        return (f"DynamicArray(capacity={self.capacity!r}, "
-                f"dtype={self.dtype!r}, items={self.items!r})")
+        return (
+            f"DynamicArray(capacity={self.capacity!r}, "
+            f"dtype={self.dtype!r}, items={self.items!r})"
+        )
 
     def append(self, item: Any):
         """Remove first item if its capacity is exceeded. Then, append `item`
@@ -44,8 +46,9 @@ class SafeArray:
             `self.dtype`.
         """
         if not isinstance(item, self.dtype):
-            raise ValueError(f"Datatype of new item must `{self.dtype}`, "
-                             f"found `{type(item)}`.")
+            raise ValueError(
+                f"Datatype of new item must `{self.dtype}`, found `{type(item)}`."
+            )
 
         if len(self.items) >= self.capacity:
             self.items.pop(0)

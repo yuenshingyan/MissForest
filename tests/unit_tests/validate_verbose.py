@@ -1,6 +1,5 @@
 """This module contains unit tests for `_validate_verbose`."""
 
-
 import unittest
 
 # noinspection PyProtectedMember

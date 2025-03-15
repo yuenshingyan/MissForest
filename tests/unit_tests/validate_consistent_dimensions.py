@@ -1,8 +1,8 @@
 """This module contains unit tests for `_validate_consistent_dimensions`."""
 
-
 import unittest
 import numpy as np
+
 # noinspection PyProtectedMember
 from src.missforest._validate import _validate_consistent_dimensions
 

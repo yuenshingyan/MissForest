@@ -6,6 +6,7 @@ __all__ = ["MissForest"]
 __version__ = VERSION
 __author__ = AUTHOR
 
+import logging
 from collections import OrderedDict
 from copy import deepcopy
 from typing import Union
@@ -38,14 +39,14 @@ from tqdm import tqdm
 import warnings
 
 import wandb
-from wandb.integration.lightgbm import wandb_callback, log_summary
+from wandb.integration.lightgbm import wandb_callback
 
 ## added
 from sklearn.model_selection import train_test_split
 import lightgbm as lgb
 ##
 
-
+logger = logging.getLogger(__name__)
 lgbm_clf = LGBMClassifier(verbosity=-1, linear_tree=True)
 lgbm_rgr = LGBMRegressor(verbosity=-1, linear_tree=True)
 
@@ -77,7 +78,7 @@ class MissForest:
         iteration.
     _verbose : int
         Determines if messages will be printed out.
-    
+
     Methods
     -------
     _get_n_missing(x: pd.DataFrame)
@@ -100,13 +101,17 @@ class MissForest:
         Calls class methods `fit` and `transform` on `x`.
     """
 
-    def __init__(self, clf: Union[Any, BaseEstimator] = lgbm_clf,
-                 rgr: Union[Any, BaseEstimator] = lgbm_rgr,
-                 categorical: Iterable[Any] = None,
-                 num_cat_classes: dict = None,
-                 initial_guess: str = "median", max_iter: int = 5,
-                 early_stopping: bool = True, 
-                 verbose: int = 2) -> None:
+    def __init__(
+        self,
+        clf: Union[Any, BaseEstimator] = lgbm_clf,
+        rgr: Union[Any, BaseEstimator] = lgbm_rgr,
+        categorical: Iterable[Any] = None,
+        num_cat_classes: dict = None,
+        initial_guess: str = "median",
+        max_iter: int = 5,
+        early_stopping: bool = True,
+        verbose: int = 2,
+    ) -> None:
         """
         Parameters
         ----------
@@ -125,7 +130,7 @@ class MissForest:
             Determines if early stopping will be executed.
         verbose : int
             Determines if message will be printed out.
-        
+
         Raises
         ------
         ValueError
@@ -160,7 +165,7 @@ class MissForest:
         self._estimators = []
         self._verbose = verbose
 
-        ## Hacky rn -- Added stuff here -- 
+        ## Hacky rn -- Added stuff here --
         self._num_cat_classes = {} if categorical is None else num_cat_classes
 
     @staticmethod
@@ -201,9 +206,9 @@ class MissForest:
 
         return missing_indices
 
-    def _compute_initial_imputations(self, x: pd.DataFrame,
-                                     categorical: Iterable[Any]
-                                     ) -> Dict[Any, Union[str, np.float64]]:
+    def _compute_initial_imputations(
+        self, x: pd.DataFrame, categorical: Iterable[Any]
+    ) -> Dict[Any, Union[str, np.float64]]:
         """Computes and stores the initial imputation values for each feature
         in `x`.
 
@@ -232,15 +237,16 @@ class MissForest:
             elif c not in categorical and self.initial_guess == "median":
                 initial_imputations[c] = x[c].median()
             elif c not in categorical:
-                raise ValueError("Argument `initial_guess` only accepts "
-                                 "`mean` or `median`.")
+                raise ValueError(
+                    "Argument `initial_guess` only accepts `mean` or `median`."
+                )
 
         return initial_imputations
 
     @staticmethod
-    def _initial_impute(x: pd.DataFrame,
-                        initial_imputations: Dict[Any, Union[str, np.float64]]
-                        ) -> pd.DataFrame:
+    def _initial_impute(
+        x: pd.DataFrame, initial_imputations: Dict[Any, Union[str, np.float64]]
+    ) -> pd.DataFrame:
         """Imputes the values of features using the mean or median for
         numerical variables; otherwise, uses the mode for imputation.
 
@@ -262,8 +268,9 @@ class MissForest:
 
         return x
 
-    def _is_stopping_criterion_satisfied(self, pfc_score: SafeArray,
-                                         nrmse_score: SafeArray) -> bool:
+    def _is_stopping_criterion_satisfied(
+        self, pfc_score: SafeArray, nrmse_score: SafeArray
+    ) -> bool:
         """Checks if stopping criterion satisfied. If satisfied, return True.
         Otherwise, return False.
 
@@ -282,35 +289,27 @@ class MissForest:
         """
         is_pfc_increased = False
         if any(self._categorical) and len(pfc_score) >= 2:
-            is_pfc_increased = pfc_score[-1] >= pfc_score[-2] # added equality
+            is_pfc_increased = pfc_score[-1] >= pfc_score[-2]  # added equality
 
         is_nrmse_increased = False
         if any(self._numerical) and len(nrmse_score) >= 2:
-            is_nrmse_increased = nrmse_score[-1] >= nrmse_score[-2] # added equality
+            is_nrmse_increased = nrmse_score[-1] >= nrmse_score[-2]  # added equality
 
         if (
-                any(self._categorical) and
-                any(self._numerical) and
-                is_pfc_increased * is_nrmse_increased
+            any(self._categorical)
+            and any(self._numerical)
+            and is_pfc_increased * is_nrmse_increased
         ):
             if self._verbose >= 2:
                 warnings.warn("Both PFC and NRMSE have increased.")
 
             return True
-        elif (
-                any(self._categorical) and
-                not any(self._numerical) and
-                is_pfc_increased
-        ):
+        elif any(self._categorical) and not any(self._numerical) and is_pfc_increased:
             if self._verbose >= 2:
                 warnings.warn("PFC have increased.")
 
             return True
-        elif (
-                not any(self._categorical) and
-                any(self._numerical) and
-                is_nrmse_increased
-        ):
+        elif not any(self._categorical) and any(self._numerical) and is_nrmse_increased:
             if self._verbose >= 2:
                 warnings.warn("NRMSE increased.")
 
@@ -342,25 +341,25 @@ class MissForest:
             - If there are one or more columns with all rows missing.
         """
         if self._verbose >= 2:
-            warnings.warn("Label encoding is no longer performed by default. "
-                          "Users will have to perform categorical features "
-                          "encoding by themselves.")
+            warnings.warn(
+                "Label encoding is no longer performed by default. "
+                "Users will have to perform categorical features "
+                "encoding by themselves."
+            )
 
         x = x.copy()
 
         # Make sure `x` is either pandas dataframe, numpy array or list of
         # lists.
-        if (
-                not isinstance(x, pd.DataFrame) and
-                not isinstance(x, np.ndarray)
-        ):
-            raise ValueError("Argument `x` can only be pandas dataframe, "
-                             "numpy array or list of list.")
+        if not isinstance(x, pd.DataFrame) and not isinstance(x, np.ndarray):
+            raise ValueError(
+                "Argument `x` can only be pandas dataframe, "
+                "numpy array or list of list."
+            )
 
         # If `x` is a list of list, convert `x` into a pandas dataframe.
-        if (
-                isinstance(x, np.ndarray) or
-                (isinstance(x, list) and all(isinstance(i, list) for i in x))
+        if isinstance(x, np.ndarray) or (
+            isinstance(x, list) and all(isinstance(i, list) for i in x)
         ):
             x = pd.DataFrame(x)
 
@@ -369,7 +368,7 @@ class MissForest:
         _validate_feature_dtype_consistency(x)
         _validate_imputable(x)
         _validate_cat_var_consistency(x.columns, self._categorical)
-        
+
         if any(self._categorical):
             _validate_infinite(x.drop(self._categorical, axis=1))
         else:
@@ -403,7 +402,7 @@ class MissForest:
             fitted_estimators = OrderedDict()
 
             for c in missing_indices:
-                if(len(missing_indices[c]) == 0 and loop_iter > 0):
+                if len(missing_indices[c]) == 0 and loop_iter > 0:
                     continue
                 if c in self._categorical:
                     estimator = deepcopy(self.classifier)
@@ -421,92 +420,113 @@ class MissForest:
                 if c in self._categorical:
                     n_classes = self._num_cat_classes[c]
 
-                if(loop_iter ==0): # train on only observed data first
+                if loop_iter == 0:  # train on only observed data first
                     x_obs = x_obs.loc[~x_obs.index.isin(missing_indices[c])]
                     y_obs = y_obs[~y_obs.index.isin(missing_indices[c])]
-                    
-                x_train, x_val, y_train, y_val = train_test_split(x_obs, y_obs, test_size=0.1, random_state=42)
+
+                x_train, x_val, y_train, y_val = train_test_split(
+                    x_obs, y_obs, test_size=0.1, random_state=42
+                )
                 lgb_train = lgb.Dataset(x_train, label=y_train)
                 lgb_eval = lgb.Dataset(x_val, label=y_val, reference=lgb_train)
 
-                feature_info = ''
+                feature_info = ""
+                max_depth_debugging = 8  # 8  ## TODO: Change this back to 8 afterwards
                 if c in self._categorical and n_classes == 2:
-                    feature_info = f'binary: {c}'
-                    print(f'binary: {c}')
+                    feature_info = f"binary: {c}"
+                    logger.info(f"binary: {c}")
                     params = {
-                        'objective': 'binary',
-                        'device': 'gpu',
-                        'boosting': 'gbdt',
-                        'learning_rate':0.01,
-                        'max_depth':7,
-                        'metric': ['binary_error', 'binary_logloss'],
-                        'verbosity':-1,
+                        "objective": "binary",
+                        "device": "cpu",
+                        "boosting": "gbdt",
+                        "learning_rate": 0.02,
+                        "max_depth": max_depth_debugging,  # 8,
+                        "metric": ["binary_error", "binary_logloss"],
+                        "verbosity": -1,
+                        "bagging_fraction": 0.9,
+                        "bagging_freq": 1,
+                        "feature_fraction": 0.9,
                     }
                 elif c in self._categorical and n_classes > 2:
-                    feature_info = f'multiclass: {c}'
-                    print(f'multiclass: {c}')
+                    feature_info = f"multiclass: {c}"
+                    logger.info(f"multiclass: {c}")
                     params = {
-                        'objective': 'multiclass',
-                        'device': 'gpu',
-                        'num_class': n_classes, 
-                        'boosting': 'gbdt',
-                        'learning_rate':0.01,
-                        'max_depth':7,
-                        'metric': ['multi_error', 'multi_logloss'],
-                        'verbosity':-1,
+                        "objective": "multiclass",
+                        "device": "cpu",
+                        "num_class": n_classes,
+                        "boosting": "gbdt",
+                        "learning_rate": 0.02,
+                        "max_depth": max_depth_debugging,  # 8,
+                        "metric": ["multi_error", "multi_logloss"],
+                        "verbosity": -1,
+                        "bagging_fraction": 0.9,
+                        "bagging_freq": 1,
+                        "feature_fraction": 0.9,
                     }
                 else:
-                    feature_info = f'regression: {c}'
-                    print(f'regression: {c}')
+                    feature_info = f"regression: {c}"
+                    logger.info(f"regression: {c}")
                     params = {
-                        'objective': 'regression',
-                        'device': 'gpu',
-                        'boosting': 'gbdt',
-                        'learning_rate':0.01,
-                        'max_depth':4,
-                        'metric': ['rmse', 'huber'],
-                        'verbosity':-1,
+                        "objective": "regression",
+                        "device": "cpu",
+                        "boosting": "gbdt",
+                        "learning_rate": 0.02,
+                        "max_depth": max_depth_debugging,  # 8,
+                        "metric": ["rmse", "huber"],
+                        "verbosity": -1,
+                        "bagging_fraction": 0.9,
+                        "bagging_freq": 1,
+                        "feature_fraction": 0.9,
                     }
-                    
-                wandb.init(project="census-income-ols-missing-test", config={"model": "lightgbm", "params": params, "feature_info": feature_info})
+
+                wandb.init(
+                    project="census-income-ols-missing-test",
+                    config={
+                        "model": "lightgbm",
+                        "params": params,
+                        "feature_info": feature_info,
+                    },
+                )
                 estimator = lgb.train(
-                        params,
-                        train_set=lgb_train,
-                        num_boost_round = 5000,
-                        valid_sets=[lgb_eval],
-                        valid_names=['eval'],
-                        callbacks= [
-                            wandb_callback(),
-                            lgb.early_stopping(stopping_rounds=20),
-                        ],
-                    )
+                    params,
+                    train_set=lgb_train,
+                    num_boost_round=5000,  ## TODO: Change this back to 5000 afterwards
+                    valid_sets=[lgb_eval],
+                    valid_names=["eval"],
+                    callbacks=[
+                        wandb_callback(),
+                        lgb.early_stopping(stopping_rounds=25),
+                        lgb.log_evaluation(period=25),
+                    ],
+                )
                 wandb.finish()
-                
+
                 # Predict the missing column with the trained estimator.
                 x_missing = x_imp.loc[missing_indices[c]].drop(c, axis=1)
                 # print(c, len(missing_indices[c]))
                 # print(x_imp.loc[missing_indices[c]].drop(c, axis=1)[:10])
                 # print(x_missing.any().any())
                 if x_missing.any().any():
-
                     # # Update imputed matrix.
                     # print(missing_indices[feature], feature)
                     # print(len(missing_indices[feature]))
                     # print(estimator.predict(x_obs, num_iteration=estimator.best_iteration).shape)
-                    prediction = estimator.predict(x_missing, num_iteration=estimator.best_iteration)
-                    if(len(prediction.shape)> 1): # if multiclass
+                    prediction = estimator.predict(
+                        x_missing, num_iteration=estimator.best_iteration
+                    )
+                    if len(prediction.shape) > 1:  # if multiclass
                         # hacky way of doing it rn
                         print(missing_indices[c])
                         print(c)
                         print(x_imp.loc[missing_indices[c], c])
-                        print(np.argmax(prediction, axis = 1).shape)
+                        print(np.argmax(prediction, axis=1).shape)
                         print(x_imp.loc[missing_indices[c], c].shape)
-                        x_imp.loc[missing_indices[c], c] = (
-                            np.argmax(prediction, axis = 1).tolist()
-                        )
+                        x_imp.loc[missing_indices[c], c] = np.argmax(
+                            prediction, axis=1
+                        ).tolist()
                     else:
                         x_imp.loc[missing_indices[c], c] = prediction.tolist()
-                        
+
                     # x_imp.loc[missing_indices[c], c] = (
                     #     # estimator.predict(x_missing).tolist()
                     #     estimator.predict(x_missing, num_iteration=estimator.best_iteration).tolist()
@@ -544,12 +564,9 @@ class MissForest:
                         )
                     )
 
-            if (
-                    self.early_stopping and
-                    self._is_stopping_criterion_satisfied(
-                        pfc_score,
-                        nrmse_score
-                    )):
+            if self.early_stopping and self._is_stopping_criterion_satisfied(
+                pfc_score, nrmse_score
+            ):
                 self._is_fitted = True
                 if self._verbose >= 2:
                     warnings.warn(
@@ -589,16 +606,20 @@ class MissForest:
             If there are no missing values in `x`.
         """
         if self._verbose >= 2:
-            warnings.warn("Label encoding is no longer performed by default. "
-                          "Users will have to perform categorical features "
-                          "encoding by themselves.")
+            warnings.warn(
+                "Label encoding is no longer performed by default. "
+                "Users will have to perform categorical features "
+                "encoding by themselves."
+            )
 
-            warnings.warn(f"In version {VERSION}, estimator fitting process "
-                          f"is moved to `fit` method. `MissForest` will now "
-                          f"imputes unseen missing values with fitted "
-                          f"estimators with `transform` method. To retain the "
-                          f"old behaviour, use `fit_transform` to fit the "
-                          f"whole unseen data instead.")
+            warnings.warn(
+                f"In version {VERSION}, estimator fitting process "
+                f"is moved to `fit` method. `MissForest` will now "
+                f"imputes unseen missing values with fitted "
+                f"estimators with `transform` method. To retain the "
+                f"old behaviour, use `fit_transform` to fit the "
+                f"whole unseen data instead."
+            )
 
         if not self._is_fitted:
             raise NotFittedError("MissForest is not fitted yet.")
@@ -629,22 +650,23 @@ class MissForest:
         for i in loop:
             for feature, estimator in self._estimators[i].items():
                 if x[feature].isnull().any():
-                    print(f'imputing {feature}')
-                    x_obs = (
-                        x_imp.loc[missing_indices[feature]]
-                        .drop(feature, axis=1)
-                    )
+                    print(f"imputing {feature}")
+                    x_obs = x_imp.loc[missing_indices[feature]].drop(feature, axis=1)
 
-                    prediction = estimator.predict(x_obs, num_iteration=estimator.best_iteration)
-                    if(len(prediction.shape)> 1): # if multiclass
+                    prediction = estimator.predict(
+                        x_obs, num_iteration=estimator.best_iteration
+                    )
+                    if len(prediction.shape) > 1:  # if multiclass
                         # hacky way of doing it rn
-                        x_imp.loc[missing_indices[feature], feature] = (
-                            np.argmax(prediction, axis = 1).tolist()
-                        )
+                        x_imp.loc[missing_indices[feature], feature] = np.argmax(
+                            prediction, axis=1
+                        ).tolist()
                     else:
                         x_imp.loc[missing_indices[feature], feature] = (
-                        # estimator.predict(x_obs).tolist()
-                            estimator.predict(x_obs, num_iteration=estimator.best_iteration).tolist()
+                            # estimator.predict(x_obs).tolist()
+                            estimator.predict(
+                                x_obs, num_iteration=estimator.best_iteration
+                            ).tolist()
                         )
 
             # Store imputed categorical and numerical features after
@@ -676,12 +698,9 @@ class MissForest:
 
             x_imps.append(x_imp)
 
-            if (
-                    self.early_stopping and
-                    self._is_stopping_criterion_satisfied(
-                        pfc_score,
-                        nrmse_score
-                    )):
+            if self.early_stopping and self._is_stopping_criterion_satisfied(
+                pfc_score, nrmse_score
+            ):
                 if self._verbose >= 2:
                     warnings.warn(
                         "Stopping criterion triggered during transform. "

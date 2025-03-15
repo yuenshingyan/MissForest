@@ -12,6 +12,7 @@ from src.missforest.missforest import MissForest
 
 class IntegrationTests(unittest.TestCase):
     """Tests MissForest as a combined entity."""
+
     def setUp(self):
         """Special method that is automatically called before each test
         method is executed. It is used to set up `MissForest` instance that
@@ -38,16 +39,16 @@ class IntegrationTests(unittest.TestCase):
             # convert to dataframe
             df = pd.DataFrame({"y": y, "x": x})
 
-            self.train, self.test = train_test_split(df, test_size=.3)
+            self.train, self.test = train_test_split(df, test_size=0.3)
 
             if (
-                    self.train.isnull().sum().sum() > 0 and
-                    self.test.isnull().sum().sum() > 0
+                self.train.isnull().sum().sum() > 0
+                and self.test.isnull().sum().sum() > 0
             ):
                 break
 
     def test_integration1(self):
-        """Tests if MissForest can run properly when its `fit` and 
+        """Tests if MissForest can run properly when its `fit` and
         `transform` methods are called."""
         mf = MissForest()
         mf.fit(self.train)
@@ -58,7 +59,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
     def test_integration2(self):
-        """Tests if MissForest can run properly when its `fit` and 
+        """Tests if MissForest can run properly when its `fit` and
         `transform` methods are called."""
         mf = MissForest()
         train_imputed = mf.fit_transform(self.train)
@@ -68,7 +69,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
     def test_integration3(self):
-        """Tests if MissForest can run properly when its `fit` and 
+        """Tests if MissForest can run properly when its `fit` and
         `transform` methods are called."""
         mf = MissForest()
         mf.fit(self.train)
@@ -79,7 +80,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(test_imputed.isnull().sum().sum(), 0)
 
     def test_integration4(self):
-        """Tests if MissForest can run properly when its `fit` and 
+        """Tests if MissForest can run properly when its `fit` and
         `transform` methods are called."""
         mf = MissForest()
         mf.fit(self.train)

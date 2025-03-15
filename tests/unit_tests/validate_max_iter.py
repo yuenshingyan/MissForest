@@ -1,7 +1,7 @@
 """This module contains unit tests for `_validate_max_iter`."""
 
-
 import unittest
+
 # noinspection PyProtectedMember
 from src.missforest._validate import _validate_max_iter
 
@@ -9,8 +9,7 @@ from src.missforest._validate import _validate_max_iter
 class ValidateMaxIter(unittest.TestCase):
     @staticmethod
     def test_max_iter_int():
-        """Tests if `_validate_max_iter` raises no error when an int is passed.
-        """
+        """Tests if `_validate_max_iter` raises no error when an int is passed."""
         _validate_max_iter(3)
 
     def test_max_iter_float(self):
