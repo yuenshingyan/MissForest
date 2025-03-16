@@ -1,54 +1,82 @@
 """This module contains `MissForest` code."""
 
-from ._info import VERSION, AUTHOR
+import multiprocessing
+import os
+import tempfile
+
+import msgspec
+
+from ._info import AUTHOR, VERSION
 
 __all__ = ["MissForest"]
 __version__ = VERSION
 __author__ = AUTHOR
 
 import logging
+import warnings
 from collections import OrderedDict
+from collections.abc import Iterable
 from copy import deepcopy
-from typing import Union
+from typing import Any, Self
+
+import lightgbm as lgb
+import lleaves
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMClassifier
-from lightgbm import LGBMRegressor
-from .errors import NotFittedError
-from ._validate import (
-    _validate_clf,
-    _validate_rgr,
-    _validate_initial_guess,
-    _validate_max_iter,
-    _validate_early_stopping,
-    _validate_feature_dtype_consistency,
-    _validate_2d,
-    _validate_cat_var_consistency,
-    _validate_categorical,
-    _validate_infinite,
-    _validate_empty_feature,
-    _validate_imputable,
-    _validate_verbose,
-    _validate_column_consistency,
-)
-from .metrics import pfc, nrmse
-from ._array import SafeArray
-from typing import Any, Iterable, Dict
+from lightgbm import LGBMClassifier, LGBMRegressor
 from sklearn.base import BaseEstimator
+
+## added
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
-import warnings
 
 import wandb
 from wandb.integration.lightgbm import wandb_callback
 
-## added
-from sklearn.model_selection import train_test_split
-import lightgbm as lgb
+from ._array import SafeArray
+from ._validate import (
+    _validate_2d,
+    _validate_cat_var_consistency,
+    _validate_categorical,
+    _validate_clf,
+    _validate_column_consistency,
+    _validate_early_stopping,
+    _validate_empty_feature,
+    _validate_feature_dtype_consistency,
+    _validate_imputable,
+    _validate_infinite,
+    _validate_initial_guess,
+    _validate_max_iter,
+    _validate_rgr,
+    _validate_verbose,
+)
+from .errors import NotFittedError
+from .metrics import nrmse, pfc
+
 ##
 
 logger = logging.getLogger(__name__)
 lgbm_clf = LGBMClassifier(verbosity=-1, linear_tree=True)
 lgbm_rgr = LGBMRegressor(verbosity=-1, linear_tree=True)
+
+
+def compile_single(
+    args: tuple[int, str, bytes],
+) -> tuple[int, str, bytes]:
+    idx, feature, booster = args
+    with tempfile.TemporaryDirectory() as temp_dir:
+        model_file = os.path.join(temp_dir, "model.txt")
+        out_file = os.path.join(temp_dir, "model.so")
+        with open(model_file, "wb") as f:
+            f.write(booster)
+
+        compiled_model = lleaves.Model(model_file)
+        compiled_model.compile(cache=out_file)
+
+        with open(out_file, "rb") as f:
+            compiled_bytes = f.read()
+
+    return (idx, feature, compiled_bytes)
 
 
 class MissForest:
@@ -103,14 +131,15 @@ class MissForest:
 
     def __init__(
         self,
-        clf: Union[Any, BaseEstimator] = lgbm_clf,
-        rgr: Union[Any, BaseEstimator] = lgbm_rgr,
+        clf: Any | BaseEstimator = lgbm_clf,
+        rgr: Any | BaseEstimator = lgbm_rgr,
         categorical: Iterable[Any] = None,
         num_cat_classes: dict = None,
         initial_guess: str = "median",
         max_iter: int = 5,
         early_stopping: bool = True,
-        verbose: int = 2,
+        verbose: int = 0,
+        with_wandb: bool = False,
     ) -> None:
         """
         Parameters
@@ -152,21 +181,78 @@ class MissForest:
         _validate_early_stopping(early_stopping)
         _validate_verbose(verbose)
 
-        self.classifier = clf
-        self.regressor = rgr
+        self.classifier = lgbm_clf
+        self.regressor = lgbm_rgr
         self._categorical = [] if categorical is None else categorical
         self.initial_guess = initial_guess
         self.max_iter = max_iter
         self.early_stopping = early_stopping
         self._numerical = None
-        self.column_order = None
+        self.column_order: pd.Index | None = None
         self.initial_imputations = None
         self._is_fitted = False
-        self._estimators = []
+        self._raw_estimator_bytes: list[list[tuple[str, bytes]]] = []
+        self._compiled_estimator_bytes: list[list[tuple[str, bytes]]] = []
+        self._compiled_estimators: list[list[tuple[str, lleaves.Model]]] = []
         self._verbose = verbose
+        self.with_wandb = with_wandb
 
-        ## Hacky rn -- Added stuff here --
-        self._num_cat_classes = {} if categorical is None else num_cat_classes
+    def save_msgpack(self) -> bytes:
+        return msgspec.msgpack.encode(
+            {
+                "_categorical": self._categorical,
+                "initial_guess": self.initial_guess,
+                "max_iter": self.max_iter,
+                "early_stopping": self.early_stopping,
+                "_numerical": self._numerical,
+                "column_order": self.column_order.values.tolist(),
+                "initial_imputations": self.initial_imputations,
+                "_is_fitted": self._is_fitted,
+                "_raw_estimator_bytes": self._raw_estimator_bytes,
+                "_compiled_estimator_bytes": self._compiled_estimator_bytes,
+            }
+        )
+
+    @classmethod
+    def load_msgpack(cls, model_bytes: bytes) -> Self:
+        data = msgspec.msgpack.decode(model_bytes)
+
+        model = cls()
+
+        model._categorical = data["_categorical"]
+        model.initial_guess = data["initial_guess"]
+        model.max_iter = data["max_iter"]
+        model.early_stopping = data["early_stopping"]
+        model._numerical = data["_numerical"]
+        model.column_order = pd.Index(data["column_order"])
+        model.initial_imputations = data["initial_imputations"]
+        model._is_fitted = data["_is_fitted"]
+        model._raw_estimator_bytes = data["_raw_estimator_bytes"]
+        model._compiled_estimator_bytes = data["_compiled_estimator_bytes"]
+
+        compiled_estimators = []
+        compiled_estimators_by_key: dict[tuple[int, str], bytes] = {}
+        for idx, estimators in enumerate(model._compiled_estimator_bytes):
+            for feature, compiled_model_bytes in estimators:
+                compiled_estimators_by_key[(idx, feature)] = compiled_model_bytes
+
+        compiled_estimators: list[list[tuple[str, lleaves.Model]]] = [
+            [] for _ in range(len(model._raw_estimator_bytes))
+        ]
+        for i, estimator in enumerate(model._raw_estimator_bytes):
+            for feature, orig_model_bytes in estimator:
+                compiled_model_bytes = compiled_estimators_by_key[(i, feature)]
+                compiled_estimators[i].append(
+                    (
+                        feature,
+                        model._load_compiled_estimator(
+                            orig_model_bytes, compiled_model_bytes
+                        ),
+                    )
+                )
+        model._compiled_estimators = compiled_estimators
+
+        return model
 
     @staticmethod
     def _get_n_missing(x: pd.DataFrame) -> int:
@@ -185,7 +271,7 @@ class MissForest:
         return int(x.isnull().sum().sum())
 
     @staticmethod
-    def _get_missing_indices(x: pd.DataFrame) -> Dict[Any, pd.Index]:
+    def _get_missing_indices(x: pd.DataFrame) -> dict[Any, pd.Index]:
         """Gather the indices of any rows that have missing values.
 
         Parameters
@@ -208,7 +294,7 @@ class MissForest:
 
     def _compute_initial_imputations(
         self, x: pd.DataFrame, categorical: Iterable[Any]
-    ) -> Dict[Any, Union[str, np.float64]]:
+    ) -> dict[Any, str | float]:
         """Computes and stores the initial imputation values for each feature
         in `x`.
 
@@ -228,14 +314,14 @@ class MissForest:
             - If argument `initial_guess` is provided and its value is
             neither `mean` nor `median`.
         """
-        initial_imputations = {}
+        initial_imputations: dict[Any, str | float] = {}
         for c in x.columns:
             if c in categorical:
                 initial_imputations[c] = x[c].mode().values[0]
             elif c not in categorical and self.initial_guess == "mean":
-                initial_imputations[c] = x[c].mean()
+                initial_imputations[c] = x[c].mean().item()
             elif c not in categorical and self.initial_guess == "median":
-                initial_imputations[c] = x[c].median()
+                initial_imputations[c] = x[c].median().item()
             elif c not in categorical:
                 raise ValueError(
                     "Argument `initial_guess` only accepts `mean` or `median`."
@@ -245,7 +331,7 @@ class MissForest:
 
     @staticmethod
     def _initial_impute(
-        x: pd.DataFrame, initial_imputations: Dict[Any, Union[str, np.float64]]
+        x: pd.DataFrame, initial_imputations: dict[Any, str | np.float64]
     ) -> pd.DataFrame:
         """Imputes the values of features using the mean or median for
         numerical variables; otherwise, uses the mode for imputation.
@@ -304,12 +390,12 @@ class MissForest:
                 warnings.warn("Both PFC and NRMSE have increased.")
 
             return True
-        elif any(self._categorical) and not any(self._numerical) and is_pfc_increased:
+        if any(self._categorical) and not any(self._numerical) and is_pfc_increased:
             if self._verbose >= 2:
                 warnings.warn("PFC have increased.")
 
             return True
-        elif not any(self._categorical) and any(self._numerical) and is_nrmse_increased:
+        if not any(self._categorical) and any(self._numerical) and is_nrmse_increased:
             if self._verbose >= 2:
                 warnings.warn("NRMSE increased.")
 
@@ -399,7 +485,7 @@ class MissForest:
             loop = tqdm(loop)
 
         for loop_iter in loop:
-            fitted_estimators = OrderedDict()
+            fitted_estimators: OrderedDict[str, bytes] = OrderedDict()
 
             for c in missing_indices:
                 if len(missing_indices[c]) == 0 and loop_iter > 0:
@@ -412,13 +498,6 @@ class MissForest:
                 # Fit estimator with imputed x.
                 x_obs = x_imp.drop(c, axis=1)
                 y_obs = x_imp[c]
-                # estimator.fit(x_obs, y_obs)
-
-                print(missing_indices[c].shape)
-
-                ## ADDED HERE ##
-                if c in self._categorical:
-                    n_classes = self._num_cat_classes[c]
 
                 if loop_iter == 0:  # train on only observed data first
                     x_obs = x_obs.loc[~x_obs.index.isin(missing_indices[c])]
@@ -479,27 +558,33 @@ class MissForest:
                         "feature_fraction": 0.9,
                     }
 
-                wandb.init(
-                    project="census-income-ols-missing-test",
-                    config={
-                        "model": "lightgbm",
-                        "params": params,
-                        "feature_info": feature_info,
-                    },
-                )
+                callbacks = [
+                    lgb.early_stopping(stopping_rounds=25),
+                    lgb.log_evaluation(period=25),
+                ]
+
+                if self.with_wandb:
+                    wandb.init(
+                        project="census-income-ols-missing-test",
+                        config={
+                            "model": "lightgbm",
+                            "params": params,
+                            "feature_info": feature_info,
+                        },
+                    )
+                    callbacks.append(wandb_callback())
+
                 estimator = lgb.train(
                     params,
                     train_set=lgb_train,
-                    num_boost_round=5000,  ## TODO: Change this back to 5000 afterwards
+                    num_boost_round=5000,
                     valid_sets=[lgb_eval],
                     valid_names=["eval"],
-                    callbacks=[
-                        wandb_callback(),
-                        lgb.early_stopping(stopping_rounds=25),
-                        lgb.log_evaluation(period=25),
-                    ],
+                    callbacks=callbacks,
                 )
-                wandb.finish()
+
+                if self.with_wandb:
+                    wandb.finish()
 
                 # Predict the missing column with the trained estimator.
                 x_missing = x_imp.loc[missing_indices[c]].drop(c, axis=1)
@@ -511,9 +596,7 @@ class MissForest:
                     # print(missing_indices[feature], feature)
                     # print(len(missing_indices[feature]))
                     # print(estimator.predict(x_obs, num_iteration=estimator.best_iteration).shape)
-                    prediction = estimator.predict(
-                        x_missing, num_iteration=estimator.best_iteration
-                    )
+                    prediction = estimator.predict(x_missing)
                     if len(prediction.shape) > 1:  # if multiclass
                         # hacky way of doing it rn
                         print(missing_indices[c])
@@ -533,9 +616,20 @@ class MissForest:
                     # )
 
                 # Store trained estimators.
-                fitted_estimators[c] = estimator
 
-            self._estimators.append(fitted_estimators)
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    model_file = os.path.join(temp_dir, "model.txt")
+                    estimator.save_model(
+                        model_file, num_iteration=estimator.best_iteration
+                    )
+                    with open(model_file, "rb") as f:
+                        estimator_bytes = f.read()
+
+                fitted_estimators[c] = estimator_bytes
+
+            self._raw_estimator_bytes.append(
+                [(k, v) for k, v in fitted_estimators.items()]
+            )
 
             # Store imputed categorical and numerical features after
             # each iteration.
@@ -567,6 +661,7 @@ class MissForest:
             if self.early_stopping and self._is_stopping_criterion_satisfied(
                 pfc_score, nrmse_score
             ):
+                self.compile()
                 self._is_fitted = True
                 if self._verbose >= 2:
                     warnings.warn(
@@ -575,13 +670,73 @@ class MissForest:
                     )
 
                 # Remove last iteration of estimators.
-                self._estimators = self._estimators[:-1]
+                self._raw_estimator_bytes = self._raw_estimator_bytes[:-1]
 
                 return self
 
+        self.compile()
         self._is_fitted = True
-
         return self
+
+    def _load_compiled_estimator(
+        self, orig_estimator_bytes: bytes, compiled_estimator_bytes: bytes
+    ) -> lleaves.Model:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            model_file = os.path.join(temp_dir, "model.txt")
+            compiled_model_file = os.path.join(temp_dir, "compiled_model.so")
+
+            with open(model_file, "wb") as f:
+                f.write(orig_estimator_bytes)
+            with open(compiled_model_file, "wb") as f:
+                f.write(compiled_estimator_bytes)
+
+            compiled_model = lleaves.Model(model_file)
+            compiled_model.compile(cache=compiled_model_file)
+
+            return compiled_model
+
+    def compile(self) -> None:
+        flat_boosters: list[tuple[int, str, bytes]] = []
+
+        for i, estimator in enumerate(self._raw_estimator_bytes):
+            for c, est in estimator:
+                flat_boosters.append((i, c, est))
+
+        with multiprocessing.Pool() as pool:
+            flat_compiled_estimators = list(
+                tqdm(
+                    pool.imap_unordered(compile_single, flat_boosters),
+                    total=len(flat_boosters),
+                    desc="Compiling models",
+                )
+            )
+
+        compiled_estimators_by_key = {
+            (idx, feature): compiled_model
+            for idx, feature, compiled_model in flat_compiled_estimators
+        }
+
+        compiled_estimators: list[list[tuple[str, lleaves.Model]]] = [
+            [] for _ in range(len(self._raw_estimator_bytes))
+        ]
+        compiled_estimator_bytes: list[list[tuple[str, bytes]]] = [
+            [] for _ in range(len(self._raw_estimator_bytes))
+        ]
+        for i, estimator in enumerate(self._raw_estimator_bytes):
+            for feature, orig_model_bytes in estimator:
+                compiled_model_bytes = compiled_estimators_by_key[(i, feature)]
+
+                compiled_estimator_bytes[i].append((feature, compiled_model_bytes))
+                compiled_estimators[i].append(
+                    (
+                        feature,
+                        self._load_compiled_estimator(
+                            orig_model_bytes, compiled_model_bytes
+                        ),
+                    )
+                )
+        self._compiled_estimators = compiled_estimators
+        self._compiled_estimator_bytes = compiled_estimator_bytes
 
     def transform(self, x: pd.DataFrame) -> pd.DataFrame:
         """Imputes all missing values in `x`.
@@ -643,19 +798,18 @@ class MissForest:
         pfc_score = SafeArray(dtype=float)
         nrmse_score = SafeArray(dtype=float)
 
-        loop = range(len(self._estimators))
+        loop = range(len(self._compiled_estimators))
+
         if self._verbose >= 1:
             loop = tqdm(loop)
 
         for i in loop:
-            for feature, estimator in self._estimators[i].items():
+            for feature, estimator in self._compiled_estimators[i]:
                 if x[feature].isnull().any():
-                    print(f"imputing {feature}")
+                    # logger.info(f"imputing {feature}")
                     x_obs = x_imp.loc[missing_indices[feature]].drop(feature, axis=1)
 
-                    prediction = estimator.predict(
-                        x_obs, num_iteration=estimator.best_iteration
-                    )
+                    prediction = estimator.predict(x_obs, n_jobs=1)
                     if len(prediction.shape) > 1:  # if multiclass
                         # hacky way of doing it rn
                         x_imp.loc[missing_indices[feature], feature] = np.argmax(
@@ -664,9 +818,7 @@ class MissForest:
                     else:
                         x_imp.loc[missing_indices[feature], feature] = (
                             # estimator.predict(x_obs).tolist()
-                            estimator.predict(
-                                x_obs, num_iteration=estimator.best_iteration
-                            ).tolist()
+                            estimator.predict(x_obs, n_jobs=1).tolist()
                         )
 
             # Store imputed categorical and numerical features after
