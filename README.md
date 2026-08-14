@@ -1,3 +1,5 @@
+
+
 # MissForest
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13368883.svg)](https://doi.org/10.5281/zenodo.13368883)
@@ -21,7 +23,7 @@ paramount.
 
 # How MissForest Handles Categorical Variables ?
 
-Categorical variables in argument `categoricals` will be label encoded for
+Categorical variables in argument `categorical` will be label encoded for
 estimators to work properly. 
 
 # Example
